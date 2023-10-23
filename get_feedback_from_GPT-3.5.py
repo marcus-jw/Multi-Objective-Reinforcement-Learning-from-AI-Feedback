@@ -52,7 +52,7 @@ def get_principles_from_folder():
     Returns:
     - dict: Dictionary where keys are filenames (without .txt) and values are the content of the files.
     """
-    principles = {}
+    principles = {} #TODO add subprinciples
     for filename in os.listdir(principle_folder_path):
         if filename.endswith('.txt'):
             with open(os.path.join(principle_folder_path, filename), 'r') as file:
@@ -87,7 +87,7 @@ def process_file_with_principles(input_filename, output_filename):
                 result_dict[principle_name] = (logits_for_A, logits_for_B)
             
             # Saving the results in a dictionary format
-            outfile.write(f"{responseA},{responseB},{str(result_dict)}\n")
+            outfile.write(f"{result_dict}\n")
 
 
 # 'input.txt' contains the list of (prompt, responseA, responseB) and we want the results in 'output.txt'
