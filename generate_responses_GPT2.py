@@ -11,7 +11,7 @@ tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = 'left'
 
 with open('prompts.txt', 'r') as file:
-    prompts = file.readlines()
+    prompts = [line.strip() for line in file.readlines()]
     
     
     
