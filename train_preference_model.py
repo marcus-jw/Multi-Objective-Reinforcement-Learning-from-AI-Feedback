@@ -52,8 +52,8 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 
 # Load the human stack-exchange-paired dataset for tuning the reward model. 
-dataset = load_dataset('json', data_files=f'/Data/{principle}.jsonl')
-
+train_dataset = load_dataset('json', data_files=f'/Data/{principle}_train.jsonl')
+test_dataset = load_dataset('json', data_files=f'/Data/{principle}_test.jsonl')
 
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
@@ -104,7 +104,7 @@ tokenizer.pad_token = tokenizer.eos_token
 model.config.pad_token_id = tokenizer.eos_token_id
 model.config.use_cache = not script_args.gradient_checkpointing
 
-original_columns = dataset.column_names
+original_columns = train_dataset.column_names
 
 
 def preprocess_data(data):
@@ -130,7 +130,13 @@ def preprocess_data(data):
 
 
 # preprocess the dataset
-train_dataset = dataset.map(
+train_dataset = train_dataset.map(
+    preprocess_data,
+    batched=True,
+    num_proc=num_proc,
+    remove_columns=original_columns,
+)
+test_dataset = test_dataset.map(
     preprocess_data,
     batched=True,
     num_proc=num_proc,
@@ -139,10 +145,9 @@ train_dataset = dataset.map(
 
 
 
-
 # Secial data collator for batching the data in our format.
 @dataclass
-class RewardDataCollatorWithPadding:
+class RewardDataCollator:
     tokenizer: PreTrainedTokenizerBase
     padding: Union[bool, str, PaddingStrategy] = True
     max_length: Optional[int] = None
@@ -223,9 +228,9 @@ trainer = RewardTrainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    eval_dataset=eval_dataset,
+    eval_dataset=test_dataset,
     compute_metrics=compute_metrics,
-    data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
+    data_collator=RewardDataCollator(tokenizer=tokenizer, max_length=script_args.max_length),
 )
 
 
