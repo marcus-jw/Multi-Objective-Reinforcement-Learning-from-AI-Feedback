@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from datasets import load_dataset
+from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -57,7 +58,7 @@ test_dataset = load_dataset('json', data_files=f'/Data/{principle}_test.jsonl')
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
 output_name = (
-    f"Models/PM_{script_args.model_name}_{principle}"
+    f"Models/PM_{script_args.model_name}_{principle}_LoRA"
 )
 
 
@@ -83,12 +84,20 @@ tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_auth_token=True)
 tokenizer.pad_token = tokenizer.eos_token
 
 
-
+#LoRA parameters
+peft_config = LoraConfig(
+    task_type=TaskType.SEQ_CLS,
+    inference_mode=False,
+    r=8,
+    lora_alpha=32,
+    lora_dropout=0.1,
+)
 
 model = AutoModelForSequenceClassification.from_pretrained(
     script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16
 )
-
+model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
 
 # Need to do this for gpt2, because it doesn't have a pad token.
 tokenizer.pad_token = tokenizer.eos_token
