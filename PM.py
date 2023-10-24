@@ -1,45 +1,32 @@
+
+    
+    import csv
 import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-from trl.ppo import PPOTrainer
-from trl.gpt2 import GPT2HeadWithValueModel, respond_to_batch
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
-tqdm.pandas()
+class RewardModel:
+    def __init__(self, filename):
+        self.data = self._load_data(filename)
 
-# Load pre-trained GPT-2 model and tokenizer
-model_name = "gpt2-medium"  # Can be "gpt2-small", "gpt2-medium", etc.
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
-gpt2_model = GPT2HeadWithValueModel(model)
+    def _load_data(self, filename):
+        with open(filename, 'r') as file:
+            reader = csv.reader(file)
+            next(reader)  # skip header
+            return {row[0]: {'answer1': row[1], 'logits_answer1': float(row[2]),
+                             'answer2': row[3], 'logits_answer2': float(row[4])} for row in reader}
 
-# Load your data: You should have your prompts, responses, and logprobs
-# This is just an example format
-data = [
-    {"prompt": "According to simplicity,", "response": "The sky is blue.", "logprob": -0.5},
-    # ... add more data points
-]
+    def get_reward(self, question, response):
+        if question not in self.data:
+            return 0.0  # or some default value
+        
+        answer_data = self.data[question]
+        
+        if response == answer_data['answer1']:
+            return answer_data['logits_answer1']
+        elif response == answer_data['answer2']:
+            return answer_data['logits_answer2']
+        else:
+            return 0.0  # or some default value if the response doesn't match either answer
 
-# Convert prompts and responses to tensor format
-prompts = tokenizer([item["prompt"] for item in data], return_tensors="pt", padding=True, truncation=True)
-responses = tokenizer([item["response"] for item in data], return_tensors="pt", padding=True, truncation=True)
-
-# Compute rewards: Here, we'll use the negative logprobs as rewards (higher is better)
-rewards = torch.tensor([-item["logprob"] for item in data])
-
-# Fine-tune model with PPO
-ppo_trainer = PPOTrainer(gpt2_model, 
-                         lr=2.5e-4, 
-                         clip_epsilon=0.1, 
-                         vf_coef=0.1, 
-                         max_grad_norm=0.5)
-
-ppo_epochs = 3  # Number of epochs to fine-tune
-for epoch in range(ppo_epochs):
-    new_responses = respond_to_batch(gpt2_model, prompts)
-    loss = ppo_trainer.step(prompts, responses, rewards, new_responses)
-    print(f"Epoch {epoch + 1}/{ppo_epochs}, Loss: {loss.item()}")
-
-# Save fine-tuned model
-gpt2_model.save_pretrained("./fine_tuned_gpt2")
+    def __call__(self, responses, questions):
+        rewards = [self.get_reward(q, r) for q, r in zip(questions, responses)]
+        return torch.tensor(rewards)
