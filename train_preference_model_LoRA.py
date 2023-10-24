@@ -206,18 +206,38 @@ accuracy = evaluate.load("accuracy")
 
 
 def compute_metrics(eval_pred):
-    predictions, _ = eval_pred
-    predictions = np.argmax(predictions, axis=0)
-    labels = np.zeros(predictions.shape) #TODO fix this
-    return accuracy.compute(predictions=predictions, references=labels)
+    predictions, labels = eval_pred
+
+    # Determine which response (A or B) has a higher predicted reward.
+    # If reward for A > reward for B, predict A (0), otherwise predict B (1).
+    predicted_labels = (predictions[:, 1] > predictions[:, 0]).astype(int)
+
+    # Determine the true preferred response based on provided logits.
+    # If logits_A > logits_B, true label is A (0), otherwise true label is B (1).
+    true_labels = (labels[:, 1] > labels[:, 0]).astype(int)
+
+    return accuracy.compute(predictions=predicted_labels, references=true_labels)
 
 
 class RewardTrainer(Trainer):
     # Compute the pairwise logloss:
     def compute_loss(self, model, inputs, return_outputs=False):
-        rewards_A = model(input_ids=inputs["input_ids_A"], attention_mask=inputs["attention_mask_A"])[0]
-        rewards_B = model(input_ids=inputs["input_ids_B"], attention_mask=inputs["attention_mask_B"])[0]
-        loss = -nn.functional.logsigmoid(rewards_A - rewards_B).mean() #TODO put actual loss
+        logits_A = inputs["logits_A"]
+        logits_B = inputs["logits_B"]
+
+        # Compute soft labels using the sigmoid function
+        soft_labels = torch.sigmoid(logits_B - logits_A)
+
+        rewards_A = model(input_ids=inputs["input_ids_A"], attention_mask=inputs["attention_mask_A"])[0].squeeze()
+        rewards_B = model(input_ids=inputs["input_ids_B"], attention_mask=inputs["attention_mask_B"])[0].squeeze()
+
+        # Compute the model's soft predictions using the sigmoid function
+        model_soft_predictions = torch.sigmoid(rewards_B - rewards_A)
+
+        # Compute the binary cross-entropy loss between the model's soft predictions and the soft labels
+        loss_fct = nn.BCELoss()
+        loss = loss_fct(model_soft_predictions, soft_labels)
+
         if return_outputs:
             return loss, {"rewards_A": rewards_A, "rewards_B": rewards_B}
         return loss
