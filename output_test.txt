@@ -1,1 +1,0 @@
-{'question': 'hi', 'responseA': ' The sky is blue.', 'responseB': ' Water is wet.', 'Test_1': (-0.91318583, -3.066264), 'Test_2': (-2.1006103, -0.80578756)}
