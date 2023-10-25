@@ -1,5 +1,4 @@
-
-    
+from LoRA_hotswapping_PM import PreferenceModelHotswapper
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -109,9 +108,8 @@ ppo_trainer = PPOTrainer(
 
 # We then build the reward pipeline, using the MORL scalarisation function chosen at the start
 #TODO add MORL stuff
-M_tokenizer = 
 
-preference_model =
+preference_models = PreferenceModelHotswapper('gpt2-medium', '/Preference Models')
 
 
 # We then define the arguments to pass to the `generate` function. These arguments
