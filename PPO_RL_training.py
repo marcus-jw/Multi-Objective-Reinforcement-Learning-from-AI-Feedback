@@ -1,4 +1,5 @@
 from LoRA_hotswapping_PM import PreferenceModelHotswapper
+from MORL_scalarizer import MORLScalarizer
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -107,14 +108,11 @@ ppo_trainer = PPOTrainer(
 )
 
 # We then build the reward pipeline, using the MORL scalarisation function chosen at the start
-#TODO add MORL stuff
 
 preference_models = PreferenceModelHotswapper('gpt2-medium', '/Preference Models')
+scalarizer = MORLScalarizer(func=MORL_objective)
 
 
-# We then define the arguments to pass to the `generate` function. These arguments
-# are passed to the `generate` function of the PPOTrainer, which is a wrapper around
-# the `generate` function of the trained model.
 generation_kwargs = {
     "min_length": -1,
     "top_k": 0.0,
@@ -140,15 +138,19 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         response_tensors.append(response.squeeze()[-gen_len:])
     batch["response"] = [tokenizer.decode(r.squeeze()) for r in response_tensors]
 
-    # Compute sentiment score # noqa
-    texts = batch["response"]
-    toxicity_inputs = toxicity_tokenizer(texts, padding=True, truncation=True, return_tensors="pt").to(
-        ppo_trainer.accelerator.device
-    )
-    logits = toxicity_model(**toxicity_inputs).logits.float()
-    toxicity_labels = (logits[:, 0]).tolist()
+    # Compute preference scores using PreferenceModelHotswapper
+    preference_scores = preference_models.compute_scores({
+        "input_ids": torch.stack(response_tensors).to(ppo_trainer.accelerator.device)
+    })
 
-    rewards = [torch.tensor(output) for output in toxicity_labels]
+    # Scalarize the multi-objective scores
+    scalarized_rewards = []
+    for _, scores in preference_scores.items():
+        rewards_dict = {k: v.item() for k, v in zip(preference_models.adapter_names, scores.squeeze().tolist())}
+        scalarized_reward = scalarizer.scalarize(rewards_dict)
+        scalarized_rewards.append(scalarized_reward)
+
+    rewards = torch.tensor(scalarized_rewards).to(ppo_trainer.accelerator.device)
 
     # Run PPO step
     stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
