@@ -2,7 +2,21 @@ from transformers import GPT2Tokenizer, GPT2Model
 import os
 
 class PreferenceModelHotswapper:
-    
+    """
+   A class that handles loading and swapping of adapters many preference models can effecively be used without increasing memory consumption much.
+   
+   Methods:
+   --------
+   compute_scores(inputs):
+       Computes scores for the given inputs using each of the loaded adapters.
+   
+   Parameters:
+   -----------
+   base_model_name : str
+       The name of the base model to be used.
+   adapter_folder : str
+       The path to the folder containing adapter models.
+   """
     def __init__(self, base_model_name, adapter_folder):
         self.tokenizer = GPT2Tokenizer.from_pretrained(base_model_name)
         self.model = GPT2Model.from_pretrained(base_model_name)
