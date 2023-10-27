@@ -1,5 +1,5 @@
 # Multi-Objective Reinforcement Learning from AI Feedback (WIP)
-This repository implements Multi-Objective Reinforcement Learning from AI Feedback  (MORLAIF) using Torch, Huggingface Transformers and TRL. 
+This repository implements Multi-Objective Reinforcement Learning from AI Feedback  (MORLAIF) using Torch, Huggingface Transformers and TRL. This project aims to test wether switching to a Multi-objective reward function in the preference model improves the safety-performance of the final model. 
 # Current Setup:
 - **Target Model:** The code currently uses GPT-2 for testing purposes, but the goal is to upgrade to llama-7b.
 - **Preference Models:** The code currently implements two options, either using finetuned GPT-2s or using different GPT-2 LoRAs, as the different preference models. The plan is to test finetuned llama-7b models, llama-7b LoRAs and smaller models and see what performs best.
