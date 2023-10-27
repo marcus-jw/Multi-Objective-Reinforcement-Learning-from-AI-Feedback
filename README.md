@@ -1,11 +1,11 @@
-#Multi-Objective Reinforcement Learning from AI Feedback (WIP)
+# Multi-Objective Reinforcement Learning from AI Feedback (WIP)
 This repository implements Multi-Objective Reinforcement Learning from AI Feedback  (MORLAIF) using Torch, Huggingface Transformers and TRL. 
-#Current Setup:
+# Current Setup:
 -**Target Model:** The code currently employs GPT-2-medium for testing purposes, but the goal is to upgrade to llama-7b.
 -**Preference Models:** The code currently implements both using GPT-2-medium for preference models and using different LoRAs to GPT-2 for the different PMs. The plan is to test training llama-7b models as PMs, training LoRAs of llama-7b and to try using smaller models.
 -**Feedback Model:** GPT-3.5-Turbo serves as the foundation model which rates response pairs according to each individual principle.
 -**Dataset:** Currently Anthropic’s HH-rlhf dataset is used although more may be added in the future.
-#Process Flow:
+# Process Flow:
 
  ![](https://github.com/carolius/MORLAIF/blob/main/MORLAIF.png?raw=true)
  
