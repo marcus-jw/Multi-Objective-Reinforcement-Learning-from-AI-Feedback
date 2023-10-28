@@ -1,6 +1,6 @@
 import openai
 import os
-
+import random
 # Read the API key from a file outside repo
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'openai_key.txt'), 'r') as key_file:
     openai.api_key = key_file.read().strip()
@@ -44,50 +44,81 @@ def evaluate_responses(question, responseA, responseB, principle):
 
     return logits_for_A,logits_for_B
 
-def get_principles_from_folder():
+
+def get_principles_from_folder(principle_folder_path):
     """
     Reads all the .txt files in the given folder and returns their content as principles.
-
     
     Returns:
-    - dict: Dictionary where keys are filenames (without .txt) and values are the content of the files.
+    - dict: Dictionary where keys are filenames (without .txt) and values are lists containing rewordings of the principle.
     """
-    principles = {} #TODO add subprinciples
+    principles = {}
     for filename in os.listdir(principle_folder_path):
         if filename.endswith('.txt'):
             with open(os.path.join(principle_folder_path, filename), 'r') as file:
                 principle_name = filename[:-4]  # Removing .txt extension
-                principles[principle_name] = file.read().strip()
+                # Initialize an empty list for storing the rewordings
+                rewordings = []
+                # Iterate through each line in the file, stripping it and appending to the list
+                for line in file:
+                    rewordings.append(line.strip())
+                # Store the list of rewordings as the value corresponding to the principle_name key
+                principles[principle_name] = rewordings
+                
     return principles
 
 
 def process_file_with_principles(input_filename, output_filename):
     """
-    Reads the input file and writes the results to the output file.
+    - Reads each line from the input file and extracts a question and two responses.
+    - For each question-response pair, evaluates the responses using for each principle with a randomly sampled wording
+    - Writes the evaluations to an output file in dictionary format.
     
     Args:
-    - input_filename (str): The name of the input file.
-    - output_filename (str): The name of the output file.
+    - input_filename (str): The name of the input file containing questions and two responses separated by '|' for each line.
+    - output_filename (str): The name of the output file where evaluation results will be saved.
+
+   
     """
     
+    # Fetch the dictionary of principles where each key is a principle name
+    # and each value is a list of rewordings of that principle.
     principles = get_principles_from_folder()
 
+    # Open the input file for reading and the output file for writing.
     with open(input_filename, 'r') as infile, open(output_filename, 'w') as outfile:
         
+        # Loop through each line in the input file.
         for line in infile:
+            # Remove leading and trailing whitespaces from the line.
             line = line.strip()
+            
+            # Split the line by the delimiter '|' to extract the question and two responses.
             question, responseA, responseB = line.split('|')
             
+            # Initialize a dictionary to hold the question, responses, and evaluation results.
             result_dict = {}
-            result_dict["question"]=question
-            result_dict["responseA"]=responseA
-            result_dict["responseB"]=responseB
-            for principle_name, principle in principles.items():
-                logits_for_A, logits_for_B = evaluate_responses(question,responseA, responseB, principle)
+            result_dict["question"] = question
+            result_dict["responseA"] = responseA
+            result_dict["responseB"] = responseB
+            
+            # Loop through each principle and its rewordings.
+            for principle_name, rewordings in principles.items():
+                # Randomly select one rewording for the principle from the list.
+                sampled_principle = random.choice(rewordings)
+                
+                # Evaluate the responses based on the randomly selected rewording.
+                logits_for_A, logits_for_B = evaluate_responses(question, responseA, responseB, sampled_principle)
+                
+                # Save the evaluation results for the principle in the results dictionary.
                 result_dict[principle_name] = (logits_for_A, logits_for_B)
             
-            # Saving the results in a dictionary format
+            # Write the results dictionary to the output file.
             outfile.write(f"{result_dict}\n")
+
+# Sample usage: 'input_test.txt' contains questions and response pairs,
+# and 'output_test.txt' will store the evaluation results.
+process_file_with_principles('input_test.txt', 'output_test.txt')
 
 
 # 'input.txt' contains the list of (prompt, responseA, responseB) and we want the results in 'output.txt'
