@@ -50,5 +50,5 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 
 **Q: How will you choose principle weights and the MORL scalarization function?**
 
-**A:** Figuring this out is a large part of the project. Models with different weights and scalarization functions will be trained and analyzed for their performance while iteratively making improvements.
+**A:** Figuring this out is a large part of the project. Models with different weights and scalarization functions will be trained and analyzed for their performance while iteratively making improvements. As a starting point doing some form of regression on a human preference dataset should be a way to get some strong initial weights
 
