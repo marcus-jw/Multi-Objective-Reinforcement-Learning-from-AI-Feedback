@@ -22,10 +22,14 @@ def evaluate_responses(question, responseA, responseB, principle):
     - logits_for_B the logits for response B
     """
     
-    prompt = f"Given the principle '{principle}', which of the following responses is better?\n\n" \
+    prompt = f"You will be given a conversation between a human and an AI assistant along "\
+            "with a principle and two responses. Your task is to choose the response which "\
+            "best follows the principle. \n"\
+            "Conversation: {question} \n Given the principle '{principle}', "\
+            "which of the following responses is better?\n" \
              f"A. {responseA}\n" \
              f"B. {responseB}\n" \
-             f"Respond only with A or B.\n\n" #TODO check newlines #TODO add question
+             f"Respond only with A or B.\n\n"
 
     response = openai.Completion.create(
         model="gpt-3.5-turbo-instruct",
