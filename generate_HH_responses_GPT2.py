@@ -1,3 +1,4 @@
+import json  # Import the json module
 import torch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from datasets import load_dataset, Dataset
@@ -14,9 +15,9 @@ model = GPT2LMHeadModel.from_pretrained("gpt2-medium").to(device)
 tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = 'left'
 
-dataset = load_dataset('json', data_files='../Data/hh-rlhf-train-extracted.jsonl')
+dataset = load_dataset('json', data_files='Data/hh-rlhf-test-extracted.jsonl')
 
-BATCH_SIZE = 16  # You can adjust this value based on your GPU's memory
+BATCH_SIZE = 4 # Adjust this value based on GPU memory
 
 def generate_responses_batch(prompts, num_responses=2):
     input_ids = tokenizer(prompts, return_tensors='pt', add_special_tokens=True, padding='max_length', max_length=500, truncation=True).input_ids.to(device)
@@ -38,13 +39,21 @@ def generate_responses_batch(prompts, num_responses=2):
 
 dataloader = DataLoader(dataset["train"], batch_size=BATCH_SIZE, shuffle=False)
 
-with open('responses.txt', 'w', encoding='utf-8' ) as file:
-    for batch in tqdm(islice(dataloader, 1000), desc="Processing dataset"): #TODO remove 1000
+with open('hh_test_responses.jsonl', 'w', encoding='utf-8') as file:  #
+    for batch in tqdm(dataloader, desc="Processing dataset"):
         prompts = batch["prompt"]
         batch_responses = generate_responses_batch(prompts)
         
         for prompt, responses in zip(prompts, batch_responses):
-            file.write(f"Prompt: {prompt}\n")
-            for idx, response in enumerate(responses, 1):
-                file.write(f"Response {idx}: {response}\n")
-            file.write("\n")
+            # Create a dictionary to hold the prompt and responses
+            reponseA=responses[0][len(prompt):-1]
+            reponseB=responses[1][len(prompt):-1]
+            output_dict = {
+                "Prompt": prompt,
+                "ResponseA": reponseA,
+                "ResponseB": reponseB,
+            }
+            
+            # Serialize the dictionary to a JSON-formatted str and write it to the file
+            file.write(json.dumps(output_dict, ensure_ascii=False))
+            file.write('\n')  # Write a newline character to delimit JSON objects

@@ -1,6 +1,7 @@
 import openai
 import os
 import random
+import json
 # Read the API key from a file outside repo
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'openai_key.txt'), 'r') as key_file:
     openai.api_key = key_file.read().strip()
@@ -72,61 +73,38 @@ def get_principles_from_folder(principle_folder_path):
     return principles
 
 
-def process_file_with_principles(input_filename, output_filename):
-    """
-    - Reads each line from the input file and extracts a question and two responses.
-    - For each question-response pair, evaluates the responses using for each principle with a randomly sampled wording
-    - Writes the evaluations to an output file in dictionary format.
+def process_file_with_principles(input_filename, output_filename,principle_folder_path):
+    principles = get_principles_from_folder(principle_folder_path)
     
-    Args:
-    - input_filename (str): The name of the input file containing questions and two responses separated by '|' for each line.
-    - output_filename (str): The name of the output file where evaluation results will be saved.
-
-   
-    """
-    
-    # Fetch the dictionary of principles where each key is a principle name
-    # and each value is a list of rewordings of that principle.
-    principles = get_principles_from_folder()
-
-    # Open the input file for reading and the output file for writing.
-    with open(input_filename, 'r') as infile, open(output_filename, 'w') as outfile:
-        
-        # Loop through each line in the input file.
+    with open(input_filename, 'r', encoding='utf-8') as infile, open(output_filename, 'w', encoding='utf-8') as outfile:
         for line in infile:
-            # Remove leading and trailing whitespaces from the line.
-            line = line.strip()
+            input_dict = json.loads(line.strip())
             
-            # Split the line by the delimiter '|' to extract the question and two responses.
-            question, responseA, responseB = line.split('|')
+            question = input_dict["Prompt"]
+            responseA = input_dict["ResponseA"]
+            responseB = input_dict["ResponseB"]
             
-            # Initialize a dictionary to hold the question, responses, and evaluation results.
-            result_dict = {}
-            result_dict["question"] = question
-            result_dict["responseA"] = responseA
-            result_dict["responseB"] = responseB
-            
-            # Loop through each principle and its rewordings.
+            result_dict = {
+                "Prompt": question,
+                "ResponseA": responseA,
+                "ResponseB": responseB
+            }
+
             for principle_name, rewordings in principles.items():
-                # Randomly select one rewording for the principle from the list.
                 sampled_principle = random.choice(rewordings)
                 
-                # Evaluate the responses based on the randomly selected rewording.
                 logits_for_A, logits_for_B = evaluate_responses(question, responseA, responseB, sampled_principle)
                 
-                # Save the evaluation results for the principle in the results dictionary.
                 result_dict[principle_name] = (logits_for_A, logits_for_B)
             
-            # Write the results dictionary to the output file.
-            outfile.write(f"{result_dict}\n")
-
-# Sample usage: 'input_test.txt' contains questions and response pairs,
-# and 'output_test.txt' will store the evaluation results.
-process_file_with_principles('input_test.txt', 'output_test.txt')
+            result_json_str = json.dumps(result_dict)
+            outfile.write(f"{result_json_str}\n")
 
 
-# 'input.txt' contains the list of (prompt, responseA, responseB) and we want the results in 'output.txt'
-process_file_with_principles('input_test.txt', 'output_test.txt')
+process_file_with_principles('Data/testing-s.jsonl', 'Data/testing-s-rated.jsonl',principle_folder_path)
+
+
+
 
 
 
