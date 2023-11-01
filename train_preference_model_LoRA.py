@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-
 import evaluate
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -18,8 +18,6 @@ from transformers import (
 )
 from transformers.utils import PaddingStrategy
 
-principle="violence" #this determines which principle to use for the preference model. 
-#This needs to have the same name as the corresponding feedback dataset in Data/ and the principle file in Principles/
 
 num_proc = 4  # CPU processors
 
@@ -37,7 +35,7 @@ class ScriptArguments:
     model_name: Optional[str] = field(default="gpt2-medium")
     tokenizer_name: Optional[str] = field(default=None)
     bf16: Optional[bool] = field(default=False)
-    num_train_epochs: Optional[int] = field(default=1)
+    num_train_epochs: Optional[int] = field(default=10)
     #train_subset: Optional[int] = field(default=100000)
     #eval_subset: Optional[int] = field(default=50000)
     gradient_checkpointing: Optional[bool] = field(default=False)
@@ -102,7 +100,7 @@ class RewardDataCollator:
         }
         return batch
     
-def preprocess_data(data, tokenizer):
+def preprocess_data(data, tokenizer,principle):
         formated = {
             "input_ids_A": [],
             "attention_mask_A": [],
@@ -122,11 +120,11 @@ def preprocess_data(data, tokenizer):
             formated["attention_mask_B"].append(tokenized_B["attention_mask"])
             formated["logits_B"].append(logitsB)
         return formated
-def load_and_preprocess_datasets(script_args, tokenizer):
+def load_and_preprocess_datasets(script_args, tokenizer,principle):
     train_dataset = load_dataset('json', data_files=f'Data/testing-s-rated.jsonl')['train']
     original_columns = train_dataset.column_names
     train_dataset = train_dataset.map(
-        lambda data: preprocess_data(data, tokenizer),
+        lambda data: preprocess_data(data, tokenizer,principle),
         batched=True,
         num_proc=num_proc,
         remove_columns=original_columns
@@ -170,9 +168,9 @@ class RewardTrainer(Trainer):
             return loss
 
 
-def configure_training(script_args):
+def configure_training(script_args,principle):
     model_name_split = script_args.model_name.split("/")[-1]
-    output_name = f"Models/PM_{script_args.model_name}_{principle}_LoRA"
+    output_name = f"Preference Model LoRAs/{principle}_{script_args.model_name}"
     
     valid_args = set(TrainingArguments.__dataclass_fields__.keys())
     filtered_args = {k: v for k, v in vars(script_args).items() if k in valid_args}
@@ -213,12 +211,12 @@ def initialize_model_and_tokenizer(script_args):
     model.config.use_cache = not script_args.gradient_checkpointing
     return model, tokenizer
 
-def train_model(model, tokenizer, training_args,script_args):
+def train_model(model, tokenizer, training_args,script_args,principle):
     # Initialize the Trainer and train the model
     trainer = RewardTrainer(
         model=model,
         args=training_args,
-        train_dataset=load_and_preprocess_datasets(script_args,tokenizer),
+        train_dataset=load_and_preprocess_datasets(script_args,tokenizer,principle),
         compute_metrics=compute_metrics,
         data_collator=RewardDataCollator(tokenizer=tokenizer, max_length=script_args.max_length)
     )
@@ -226,24 +224,44 @@ def train_model(model, tokenizer, training_args,script_args):
         
     trainer.train(script_args.resume_from_checkpoint)
 
+def get_principles_from_folder(principle_folder_path):
+    """
+    Reads all the .txt files in the given folder and returns their content as principles.
+    
+    Returns:
+    - dict: Dictionary where keys are filenames (without .txt) and values are lists containing rewordings of the principle.
+    """
+    principles = {}
+    for filename in os.listdir(principle_folder_path):
+        if filename.endswith('.txt'):
+            with open(os.path.join(principle_folder_path, filename), 'r') as file:
+                principle_name = filename[:-4]  # Removing .txt extension
+                # Initialize an empty list for storing the rewordings
+                rewordings = []
+                # Iterate through each line in the file, stripping it and appending to the list
+                for line in file:
+                    rewordings.append(line.strip())
+                # Store the list of rewordings as the value corresponding to the principle_name key
+                principles[principle_name] = rewordings
+                
+    return principles
+
 def main():
-    # Argument Parsing
-    parser = HfArgumentParser(ScriptArguments)
-    script_args = parser.parse_args_into_dataclasses()[0]
+    principles = get_principles_from_folder("Principles/")
+    for principle in principles:
+        # Argument Parsing
+        parser = HfArgumentParser(ScriptArguments)
+        script_args = parser.parse_args_into_dataclasses()[0]
 
-    # Training Configuration
-    training_args = configure_training(script_args)
+        # Training Configuration
+        training_args = configure_training(script_args, principle)
 
-    # Model Initialization
-    model, tokenizer = initialize_model_and_tokenizer(script_args)
+        # Model Initialization
+        model, tokenizer = initialize_model_and_tokenizer(script_args)
 
-    # Dataset Loading
-    load_and_preprocess_datasets(script_args, tokenizer)
-
-    # Model Training
-    train_model(model, tokenizer, training_args,script_args)
-    print("last checkpoint")
-    model.save_pretrained(training_args.output_dir + "_last_checkpoint")
+        # Model Training
+        train_model(model, tokenizer, training_args, script_args, principle)
+        model.save_pretrained(training_args.output_dir)
 
 if __name__ == '__main__':
     main()
