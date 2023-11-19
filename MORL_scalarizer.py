@@ -6,7 +6,7 @@ class MORLScalarizer:
     Before scalarization, rewards are transformed based on pre-defined scaling and offset values.
     """
     
-    def __init__(self, func):
+    def __init__(self, func,weight_file):
         """
         Initialize the scalarizer with a specific scalarization function.
 
@@ -16,67 +16,41 @@ class MORLScalarizer:
         func_dict = {
             "max_min": self.max_min,
             "soft_max_min": self.soft_max_min,
-            "equal_weight": self.equal_weight
+            "max_avg": self.max_avg
         }
         self.func = func_dict[func]
         
-        
+        # Read the preference file and store the contents as a dictionary
+        self.preference_weights = {}
+        with open(weight_file, "r") as file:
+            for line in file:
+                key, value = line.strip().split(":")
+                self.preference_weights[key] = int(value)
     
-    scaling_dict = {
-            "conciseness":    1,
-            "ethical":        1,
-            "factual":        1,
-            "honesty":        1,
-            "legal":          1,
-            "racism":         1,
-            "relevance":      1,
-            "sexism":         1,
-            "sycophancy":     1,
-            "toxicity":       1,
-            "truthful":       1,
-            "usefulness":     1,
-            "violence":       1,
-            "x_risk":         1
-    }
-    offset_dict = {
-            "conciseness":    0,
-            "ethical":        0,
-            "factual":        0,
-            "honesty":        0,
-            "legal":          0,
-            "racism":         0,
-            "relevance":      0,
-            "sexism":         0,
-            "sycophancy":     0,
-            "toxicity":       0,
-            "truthful":       0,
-            "usefulness":     0,
-            "violence":       0,
-            "x_risk":         0
-        }
+
     
-    
-    def apply_scaling_and_offset(self,rewards):
+    def apply_weighting(self, rewards):
         """
-        Applies scaling and offset to the given rewards based on the scaling_dict and offset_dict.
-        
+        Applies weighting to the given rewards based on the provided weights.
+
         Parameters:
             rewards (dict): Dictionary of rewards for all objectives.
-            
+            weights (dict): Dictionary of weights for all objectives.
+
         Returns:
-            dict: Dictionary of transformed rewards for all objectives.
+            dict: Dictionary of weighted rewards for all objectives.
         """
-        transformed_rewards = {}
+        weighted_rewards = {}
         for key, value in rewards.items():
-            scaling = self.scaling_dict.get(key, 1)
-            offset = self.offset_dict.get(key, 0)
-            transformed_rewards[key] = value * scaling + offset
-        return transformed_rewards
-    
+            weight = self.preference_weights[key]
+            weighted_rewards[key] = value * weight
+        return weighted_rewards
+
+
     def scalarize(self,rewards):
         """
         Applies a scalarization method to a multi-objective reward set. 
-        Before scalarization, rewards are transformed based on pre-defined scaling and offset values.
+        Before scalarization, rewards are transformed based on pre-defined weights.
         
         Parameters:
             rewards (dict): Dictionary of rewards for all objectives.
@@ -84,7 +58,7 @@ class MORLScalarizer:
         Returns:
             float: Scalarized reward value.
         """
-        transformed_rewards = self.apply_scaling_and_offset(rewards)
+        transformed_rewards = self.apply_weighting(rewards)
         
         
         return self.func(transformed_rewards)
@@ -116,7 +90,7 @@ class MORLScalarizer:
         r = torch.tensor(list(rewards.values()), dtype=torch.float32)
         return -torch.log(torch.sum(torch.exp(-r))).item()
     
-    def equal_weight(self,rewards):
+    def max_avg(self,rewards):
         """
         Weighted average scalarization.
         

@@ -60,7 +60,7 @@ logreg.fit(X_train, y_train)
 
 # Save the coefficients to a text file
 coefficients = logreg.coef_
-with open("preference weights.txt", "w") as file:
+with open("preference_weights.txt", "w") as file:
     preferences = ["conciseness", "ethical", "factual", "honesty", "legal", "racism", "relevance", "sexism", "sycophancy", "toxicity", "truthful", "usefulness", "violence", "x-risk"]
     for preference, coefficient in zip(preferences, coefficients):
         file.write(f"{preference}: {coefficient}\n")
