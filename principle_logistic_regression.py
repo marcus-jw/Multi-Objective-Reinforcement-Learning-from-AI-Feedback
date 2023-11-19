@@ -21,17 +21,6 @@ from sklearn.metrics import accuracy_score
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-class ScriptArguments:
-    model_name: Optional[str] = field(default="gpt-2-medium")
-    log_with: Optional[str] = field(default=None)
-    learning_rate: Optional[float] = field(default=(1.47e-5) * 2)
-    mini_batch_size: Optional[int] = field(default=4)
-    batch_size: Optional[int] = field(default=16)
-    gradient_accumulation_steps: Optional[int] = field(default=1)
-    model_save_path: Optional[str] = field(default=f"/Trained Models/gpt-2-medium_{MORL_objective}")
-
-parser = HfArgumentParser(ScriptArguments)
-script_args = parser.parse_args_into_dataclasses()[0]
 
 preference_models = PreferenceModelHotswapper('gpt2-medium', '/Preference Models')
 dataset = load_dataset("Anthropic/hh-rlhf", split="train")
@@ -51,7 +40,7 @@ preference_scores = preference_scores_chosen + preference_scores_rejected
 output = [1] * len(preference_scores_chosen) + [0] * len(preference_scores_rejected)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(preference_scores, output, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(preference_scores, output, test_size=0)
 
 logreg = LogisticRegression()
 
