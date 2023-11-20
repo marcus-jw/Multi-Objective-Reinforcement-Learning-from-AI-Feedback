@@ -18,21 +18,23 @@ from trl.core import LengthSampler
 
 
 tqdm.pandas()
-MORL_objective = "max-min" # The name of the Multi-Objective RL scalarization function to use. 
+MORL_objective = "max-avg" # The name of the Multi-Objective RL scalarization function to use. 
 # See the MORL_scalarization_funcs file for the available options
+weight_file = "principle_weights"
+#weight_file = "sycophancy_flipped"
 
 shared_layers = 0 # number of layers to share between trained model and target model. I.e. number of layers not to train to save memory
 
 
 @dataclass
 class ScriptArguments:
-    model_name: Optional[str] = field(default="gpt-2-medium")
+    model_name: Optional[str] = field(default="gpt2-medium")
     log_with: Optional[str] = field(default=None)
     learning_rate: Optional[float] = field(default=(1.47e-5) * 2)
     mini_batch_size: Optional[int] = field(default=4)
     batch_size: Optional[int] = field(default=16)
     gradient_accumulation_steps: Optional[int] = field(default=1)
-    model_save_path: Optional[str] = field(default=f"/Trained Models/gpt-2-medium_{MORL_objective}")
+    model_save_path: Optional[str] = field(default=f"/Trained Models/gpt2-medium_{MORL_objective}_{weight_file}")
 
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
@@ -69,7 +71,7 @@ def build_dataloader(config, dataset):
 
     return dataset
 
-train_dataset = load_dataset('json', data_files='/Data/hh-rlhf-train-extracted.jsonl')
+train_dataset = load_dataset('json', data_files='Data/hh-rlhf-train-extracted.jsonl')
 
 train_dataloader= build_dataloader(config, train_dataset)
 
@@ -108,7 +110,7 @@ ppo_trainer = PPOTrainer(
 # We then build the reward pipeline, using the MORL scalarisation function chosen at the start
 
 preference_models = PreferenceModelHotswapper('gpt2-medium', '/Preference Models')
-scalarizer = MORLScalarizer(func=MORL_objective)
+scalarizer = MORLScalarizer(func = MORL_objective, weight_file = weight_file + ".txt")
 
 
 generation_kwargs = {
