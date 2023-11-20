@@ -190,7 +190,7 @@ def configure_training(script_args,principle):
 def initialize_model_and_tokenizer(script_args):
     # Load the value-head model and tokenizer
     tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.model_name
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_auth_token=True)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, token=True)
     
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
