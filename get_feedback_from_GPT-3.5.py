@@ -101,7 +101,7 @@ def process_file_with_principles(input_filename, output_filename,principle_folde
             outfile.write(f"{result_json_str}\n")
 
 
-process_file_with_principles('Data/testing-s.jsonl', 'Data/testing-s-rated.jsonl',principle_folder_path)
+process_file_with_principles('Data/hh-rlhf-train-extracted.jsonl', 'Data/rated-hh-rlhf-train-extracted.jsonl',principle_folder_path)
 
 
 
