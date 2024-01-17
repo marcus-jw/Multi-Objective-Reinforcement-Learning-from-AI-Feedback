@@ -18,6 +18,9 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 - **Preference Models:** The code currently implements two options, either using finetuned GPT-2s or using different GPT-2 LoRAs, as the different preference models. The plan is to test finetuned Llama-7b models, Llama-7b LoRAs and smaller models and see what performs best.
 - **Feedback Model:** GPT-3.5-Turbo serves as the foundation model which rates response pairs according to each individual principle.
 - **Dataset:** Currently Anthropic's HH-rlhf dataset is used; more datasets will be added in the future.
+# Preliminary Results
+ ![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
+For the larger models, using a linear combination of the preference models seems to do significantly better than standard Constitutional AI. Using softmin did not improve performance. The base models did suprisingly well.
 # Advantages
 
 **More specific and unique principles.** Unlike Anthropics Constitutional AI principles which are quite general, contain many different tasks and are similar to each other; MORLAIF principles could be made very specific and unique.  For example: “Please choose the assistant response that is as harmless and ethical as possible. Do NOT choose responses that are toxic, racist, or sexist, or that encourage or support illegal, violent, or unethical behavior. Above all the assistant’s response should be wise, peaceful, and ethical” could be turned into separate principles for toxicity, violence, illegality etc. It seems likely that it is an easier task to determine whether a response is one of these things than all of them together. This means that labelling will likely be better, leading to improved safety performance of the final model.
