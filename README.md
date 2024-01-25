@@ -6,7 +6,7 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
  
 **Preference modeling:**
 1.	**Sampling from Target Model:** The target model produces pairs of responses for prompts. This is implemented in `generate_responses_GPT2.py` which uses the HH-rlhf dataset.
-2.	**Rating by Feedback Model:** A foundation model evaluates which of these responses is better for each Individual principle. This is implemented in `get_feedback_from_GPT-3.5.py`.
+2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better for each individual principle. This is implemented in `get_feedback_from_GPT-3.5.py`.
 3.	**Training Preference Models:** These ratings are then used to train a separate preference model for each principle. This is implemented in `train_preference_model.py` and `train_preference_model_LoRA.py`.
 
 **RL from AI feedback:**
@@ -14,13 +14,13 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities. A few scalarization functions are implemented in `MORL_scalarizer.py`. 
 5.	**PPO Training:** The combined score from the scalarization function acts as a reward signal, guiding the training of the target model using Proximal Policy Optimization (PPO). This is implemented in `PPO_RL_training.py`.
 # Current Setup:
-- **Target Model:** The code currently uses GPT-2 for testing purposes, but the goal is to upgrade to Llama-7b.
-- **Preference Models:** The code currently implements two options, either using finetuned GPT-2s or using different GPT-2 LoRAs, as the different preference models. The plan is to test finetuned Llama-7b models, Llama-7b LoRAs and smaller models and see what performs best.
-- **Feedback Model:** GPT-3.5-Turbo serves as the foundation model which rates response pairs according to each individual principle.
+- **Target Model:** The code currently supports GPT-2 medium, large and XL along with Llama-7B, a 4-bit quantized version of Llama-7B and LoRAs of Llama-7B.
+- **Preference Models:** Currently the code implements the finetuning of GPT-2, Llama-7B or LoRAs of these models as the preference models.
+- **Feedback Model:** GPT-3.5-Turbo is used to rate response pairs according to each individual principle.
 - **Dataset:** Currently Anthropic's HH-rlhf dataset is used; more datasets will be added in the future.
 # Preliminary Results
  ![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
-For the larger models, using a linear combination of the preference models seems to do significantly better than standard Constitutional AI. Using softmin did not improve performance. The base models did suprisingly well.
+For the larger models, using a weighted sum of the preference models seems to do significantly better than standard Constitutional AI. Using softmin by contrast degraded performance slightly relative to standard CAI.
 # Advantages
 
 **More specific and unique principles.** Unlike Anthropics Constitutional AI principles which are quite general, contain many different tasks and are similar to each other; MORLAIF principles could be made very specific and unique.  For example: “Please choose the assistant response that is as harmless and ethical as possible. Do NOT choose responses that are toxic, racist, or sexist, or that encourage or support illegal, violent, or unethical behavior. Above all the assistant’s response should be wise, peaceful, and ethical” could be turned into separate principles for toxicity, violence, illegality etc. It seems likely that it is an easier task to determine whether a response is one of these things than all of them together. This means that labelling will likely be better, leading to improved safety performance of the final model.
