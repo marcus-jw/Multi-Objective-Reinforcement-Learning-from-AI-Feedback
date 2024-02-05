@@ -13,7 +13,7 @@ import math
 # tokenizer = GPT2Tokenizer.from_pretrained(model_name)
 
 #load GPT-2-medium
-model_name = 'gpt2-XL'
+model_name = 'gpt2-large'
 model = GPT2LMHeadModel.from_pretrained(model_name)
 tokenizer = GPT2Tokenizer.from_pretrained(model_name)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -43,7 +43,8 @@ def empirical_mutual_information(query, response, model, tokenizer):
     p_a_given_q = sequence_probability(model, tokenizer, combined_sequence)
     p_a = sequence_probability(model, tokenizer, response)
     emi = math.log(p_a_given_q / p_a, 2)
-    return emi
+    normalized_emi = emi / len(tokenizer.tokenize(response)) # Normalize by the length of the response
+    return normalized_emi
 
 # Evaluate Responses and Compare
 correct_count = 0
@@ -51,8 +52,9 @@ for row in tqdm(dataset):
     prompt = row['prompt']
     response_chosen = row['chosen']
     response_rejected = row['rejected']
-    score_chosen = empirical_mutual_information(prompt,response_chosen, model, tokenizer)
     score_rejected = empirical_mutual_information(prompt,response_rejected, model, tokenizer)
+    score_chosen = empirical_mutual_information(prompt,response_chosen, model, tokenizer)
+    
 
     if score_chosen > score_rejected:
         correct_count += 1
@@ -65,8 +67,8 @@ result_dict = {
     "accuracy": accuracy
 }
 # Write Accuracy to a Text File
-with open('accuracy_results.jsonl', 'a') as file:
+with open('results.jsonl', 'a') as file:
     result_json_str = json.dumps(result_dict)
     file.write(f"{result_json_str}\n")
 
-print(f'Accuracy written to accuracy_results.txt')
+print(f'Accuracy written')
