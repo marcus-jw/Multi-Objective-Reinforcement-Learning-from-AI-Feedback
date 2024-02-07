@@ -38,7 +38,8 @@ def empirical_mutual_information(query, response, model, tokenizer):
     p_a_given_q = sequence_probability(model, tokenizer, combined_sequence)
     p_a = sequence_probability(model, tokenizer, response)
     emi = math.log(p_a_given_q / p_a, 2)
-    return emi
+    normalized_emi = emi / len(tokenizer.tokenize(response)) # Normalize by the length of the response
+    return normalized_emi
 
 # Evaluate Responses and Compare
 correct_count = 0

@@ -11,12 +11,13 @@ class MORLScalarizer:
         Initialize the scalarizer with a specific scalarization function.
 
         Parameters:
-            func (str): The scalarization function to apply. Valid values are "max_min", "soft_max_min", and "equal_weight".
+            func (str): The scalarization function to apply.
         """
         func_dict = {
             "max_min": self.max_min,
             "soft_max_min": self.soft_max_min,
-            "max_avg": self.max_avg
+            "max_avg": self.max_avg,
+            "zero_syco": self.zero_syco
         }
         self.func = func_dict[func]
         
@@ -103,3 +104,18 @@ class MORLScalarizer:
         """
         r = torch.tensor(list(rewards.values()), dtype=torch.float32)
         return torch.sum(r).item()
+        
+    def zero_syco(self,rewards):
+        """
+        Zero-sycophancy scalarization.
+        Sets the sychophancy PM weight to zero.
+        Parameters:
+            rewards (dict): Dictionary of rewards for all objectives.
+            
+        Returns:
+            float: Scalarized reward.
+        """
+        rewards["sycophancy"] = 0
+        r = torch.tensor(list(rewards.values()), dtype=torch.float32)
+        return torch.sum(r).item()
+
