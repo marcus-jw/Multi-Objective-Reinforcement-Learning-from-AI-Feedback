@@ -1,0 +1,14 @@
+accelerate==0.27.2
+datasets==2.17.1
+evaluate==0.4.1
+matplotlib==3.8.2
+numpy==1.24.4
+openai==1.12.0
+pandas==1.5.3
+peft==0.8.2
+scikit_learn==1.2.0
+seaborn==0.13.2
+tqdm==4.66.1
+transformers==4.38.0
+trl==0.7.11
+wandb==0.16.3
