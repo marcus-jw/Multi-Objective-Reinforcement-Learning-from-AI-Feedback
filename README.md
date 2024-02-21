@@ -1,12 +1,16 @@
 # Multi-Objective Reinforcement Learning from AI Feedback (WIP)
 This repository implements Multi-Objective Reinforcement Learning from AI Feedback (MORLAIF) using Torch, Huggingface Transformers and TRL. This project aims to test whether switching to a multi-objective reward function in the preference model improves the safety performance of the final model. 
+## How to replicate:
+The easiest way to run the code is to use the docker image. Simply build the image with ```docker build -t morlaif .``` and run it with ```docker run -it --rm morlaif```. First you will need to run `process_HH_dataset.py`, `generate_responses_GPT2.py` and get_feedback.py to format the dataset, sample the target model and get feedback from a foundation model respectively. Note that get_feedback,py requires an OpenAI API key. Afterwards launch the desired PM training with the appropriate bash script (they cannot be run with the .py file) followed by the desired PPO training bash script. 
+Note that as this is a WIP not everything will necessarily work yet.
+
 # Process:
 
  ![](https://github.com/carolius/MORLAIF/blob/main/MORLAIF.png?raw=true)
  
 **Preference modeling:**
 1.	**Sampling from Target Model:** The target model produces pairs of responses for prompts. This is implemented in `generate_responses_GPT2.py` which uses the HH-rlhf dataset.
-2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better for each individual principle. This is implemented in `get_feedback_from_GPT-3.5.py`.
+2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better for each individual principle. This is implemented in `get_feedback`.
 3.	**Training Preference Models:** These ratings are then used to train a separate preference model for each principle. This is implemented in `train_preference_model.py` and `train_preference_model_LoRA.py`.
 
 **RL from AI feedback:**
