@@ -19,5 +19,9 @@ for file in "$pm_dir"/*.txt; do
         --logging_steps=10 \
         --evaluation_strategy="steps" \
         --max_length=512 \
-        --num_proc=4 
+        --num_proc=4 \
+        --LoRA=True \
+        --LoRA_r=8 \
+        --LoRA_alpha=32 \
+        --LoRA_dropout=0.1 
 done

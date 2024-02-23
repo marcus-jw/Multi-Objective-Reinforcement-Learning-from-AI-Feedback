@@ -1,20 +1,20 @@
 {"model": "GPT-2-Medium", "Objective function": "Base", "accuracy": 0.5278858746492049}
 {"model": "GPT-2-Large", "Objective function": "Base", "accuracy": 0.5450608044901777}
 {"model": "GPT-2-XL", "Objective function": "Base", "accuracy": 0.5018709073900842}
-{"model": "Llama-2-7B-4bit", "Objective function": "Base", "accuracy": 0.5461019303524917}
+{"model": "Llama-2-7B", "Objective function": "Base", "accuracy": 0.5461019303524917}
 {"model": "GPT-2-Medium", "Objective function": "Single objective", "accuracy": 0.5539960773004873}
 {"model": "GPT-2-Large", "Objective function": "Single objective", "accuracy": 0.5634008943565458}
 {"model": "GPT-2-XL", "Objective function": "Single objective", "accuracy": 0.5588770997344101}
-{"model": "Llama-2-7B-4bit", "Objective function": "Single objective", "accuracy": 0.613890699624739}
+{"model": "Llama-2-7B", "Objective function": "Single objective", "accuracy": 0.613890699624739}
 {"model": "GPT-2-Medium", "Objective function": "Linear", "accuracy": 0.5194427523271413}
 {"model": "GPT-2-Large", "Objective function": "Linear", "accuracy": 0.5423832118047838}
 {"model": "GPT-2-XL", "Objective function": "Linear", "accuracy": 0.5956365801213612}
-{"model": "Llama-2-7B-4bit", "Objective function": "Linear", "accuracy": 0.7069541177549137}
+{"model": "Llama-2-7B", "Objective function": "Linear", "accuracy": 0.7069541177549137}
 {"model": "GPT-2-Medium", "Objective function": "Softmin", "accuracy": 0.548897488186154}
 {"model": "GPT-2-Large", "Objective function": "Softmin", "accuracy": 0.5372687871800870}
 {"model": "GPT-2-XL", "Objective function": "Softmin", "accuracy": 0.5713734206194457}
-{"model": "Llama-2-7B-4bit", "Objective function": "Softmin", "accuracy": 0.6261141281426826}
+{"model": "Llama-2-7B", "Objective function": "Softmin", "accuracy": 0.6261141281426826}
 {"model": "GPT-2-Medium", "Objective function": "Zero-syco", "accuracy": 0.5139169727445675}
 {"model": "GPT-2-Large", "Objective function": "Zero-syco", "accuracy": 0.5424314723217049}
 {"model": "GPT-2-XL", "Objective function": "Zero-syco", "accuracy": 0.5434137263348916}
-{"model": "Llama-2-7B-4bit", "Objective function": "Zero-syco", "accuracy": 0.657364865658424}
+{"model": "Llama-2-7B", "Objective function": "Zero-syco", "accuracy": 0.657364865658424}

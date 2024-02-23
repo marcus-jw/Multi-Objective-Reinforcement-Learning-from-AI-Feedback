@@ -7,13 +7,20 @@ from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, HfArgumentParser,TrainingArguments
 from accelerate import Accelerator
 from trl import RewardConfig, RewardTrainer
-
+from peft import LoraConfig, TaskType
                             
 if __name__ == "__main__":
     parser = HfArgumentParser(RewardConfig)
+
+    # Add custom arguments
     parser.add_argument("--model_name", type=str, default="gpt2-medium")
     parser.add_argument("--num_proc", type=int, default=4)
     parser.add_argument("--principle", type=str, default=None)
+    parser.add_argument("--LoRA", type=bool, default=False)
+    parser.add_argument("--LoRA_r", type=int, default=None)
+    parser.add_argument("--LoRA_alpha", type=int, default=None)
+    parser.add_argument("--LoRA_dropout", type=int, default=None)
+
     # Parse the dictionary into RewardConfig
     reward_config,config = parser.parse_args_into_dataclasses()
     if config.principle:
@@ -22,11 +29,23 @@ if __name__ == "__main__":
     else:
         train_dataset = load_dataset('json', data_files='/data/train_rated.jsonl')
         test_dataset = load_dataset('json', data_files='/data/test_rated.jsonl')
+    
+    # If LoRA is true, create a LoraConfig object
+    if config.LoRA:
+        peft_config = LoraConfig(
+        task_type=TaskType.SEQ_CLS,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+        )
+    else:
+        peft_config = None
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True)
     model = AutoModelForSequenceClassification.from_pretrained(
         config.model_name, num_labels=1)
-    print(config.model_name)
+
     if "gpt2" in config.model_name:
             tokenizer.pad_token = tokenizer.eos_token
             model.config.pad_token_id = tokenizer.eos_token_id
@@ -80,6 +99,7 @@ if __name__ == "__main__":
             args=reward_config,
             train_dataset=train_dataset['train'],
             eval_dataset=test_dataset,
+            peft_config=peft_config
         ))
     trainer.train()
     trainer.save_model(reward_config.output_dir+config.principle)
