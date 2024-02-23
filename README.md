@@ -16,7 +16,7 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 - OpenAI API Key
 
 ### Steps
-1. **Build Docker Image**: Run `docker build -t morlaif .` to create your Docker environment.
+1. **Build Docker Image**: Run `docker build -t morlaif .` to build the Docker environment.
 2. **Run Docker Container**: Use `docker run -it --rm morlaif` to start the container.
 3. **Prepare the Dataset**: Execute `process_HH_dataset.py` to format the anthropic `HH-rlhf` dataset.
 4. **Generate Responses**: Use `generate_responses_GPT2.py` or `generate_responses_llama.py`  for sampling from the target model.
