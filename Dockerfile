@@ -1,5 +1,5 @@
 #Uses the PyTorch NGC Container as a base image
-FROM nvcr.io/nvidia/pytorch:24.01-py3 as base
+FROM nvcr.io/nvidia/pytorch:24.02-py3 as base
 
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -22,6 +22,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 USER appuser
 
 COPY . /workspace
-
-
-CMD /bin/bash

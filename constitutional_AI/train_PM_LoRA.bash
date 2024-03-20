@@ -1,14 +1,13 @@
 model_name="gpt2-medium"
-model_folder=""
 principle="CAI"
 accelerate launch --config_file accelerate.yaml PM_training/train_PM.py \
-    --model_name="${model_folder}${model_name}" \
-    --output_dir="data/PMs/${model_name}_${principle}" \
-    --per_device_train_batch_size=64 \
+    --model_name="${model_name}" \
+    --output_dir="data/PM_LoRAs/${model_name}_${principle}" \
+    --per_device_train_batch_size=2 \
     --per_device_eval_batch_size=2 \
     --num_train_epochs=1 \
     --gradient_accumulation_steps=1 \
-    --gradient_checkpointing=True \
+    --gradient_checkpointing=False \
     --learning_rate=2e-5 \
     --remove_unused_columns=False \
     --optim="adamw_torch" \
@@ -17,4 +16,8 @@ accelerate launch --config_file accelerate.yaml PM_training/train_PM.py \
     --evaluation_strategy="steps" \
     --max_length=512 \
     --num_proc=4 \
-    --report_to="wandb" 
+    --report_to="wandb" \
+    --LoRA=True \
+    --LoRA_r=8 \
+    --LoRA_alpha=32 \
+    --LoRA_dropout=0.1

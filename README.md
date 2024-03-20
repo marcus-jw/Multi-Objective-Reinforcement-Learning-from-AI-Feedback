@@ -20,7 +20,7 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 2. **Run Docker Container**: Use `docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --rm morlaif` to start the container.
 3. **Prepare the Dataset**: Execute `process_HH_dataset.py` to format the anthropic `HH-rlhf` dataset.
 4. **Generate Responses**: Use `generate_responses_GPT2.py` or `generate_responses_llama.py`  for sampling from the target model.
-5. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 (OpenAI API key required). Note that this will send API requests in parallel set max_requests_per_minute appropriately.
+5. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 (OpenAI API key required). Note that this will send API requests in parallel, set max_requests_per_minute appropriately.
 6. **Launch PM Training**: Initiate preference model training with the provided bash scripts.
 7. **Start PPO Training**: Follow up with PPO training using the designated bash scripts.
 
