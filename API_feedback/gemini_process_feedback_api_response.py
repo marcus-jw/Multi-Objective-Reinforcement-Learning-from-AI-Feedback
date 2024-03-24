@@ -15,16 +15,18 @@ with open(config.response_path, 'r', encoding='utf-8') as infile, open(config.da
     dataset = data.readlines()
     dataset = [json.loads(data.strip()) for data in dataset]
     responses = infile.readlines()
-    responses = [json.loads(response.strip()) for response in responses]
+    responses = [json.loads(response) for response in responses]
 
-    # Sort the responses by id
-    responses = sorted(responses, key=lambda x: x[2]["id"])
+
+    # Sort the JSON objects by the 'id' key
+    sorted_responses = sorted(responses, key=lambda x: x[2]["id"])
 
 
     for i in range(len(dataset)):
-
-        dataset[i]["id"] = int(responses[i][2]["id"])
-        choice = responses[i][1][0]["content"]["parts"][0]["text"].strip()
+        
+        dataset[i]["id"] = int(sorted_responses[i][2]["id"])
+        print(sorted_responses[i])
+        choice = sorted_responses[i][1][0]["content"]["parts"][0]["text"].strip()
 
         if choice == "A":
             dataset[i]["logits_A"] = -0.5108256
