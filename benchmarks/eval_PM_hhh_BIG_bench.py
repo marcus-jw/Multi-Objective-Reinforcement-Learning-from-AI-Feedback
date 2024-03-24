@@ -2,21 +2,32 @@ import json
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from datasets import Dataset
 from tqdm import tqdm
+from peft import PeftModel, PeftConfig    
 
-model_path = "data/PM_LoRAs/gemma-2b/final"
+model_path = "data/PM_LoRAs/gemma-2b_CAI/final"
 test_file = "benchmarks/hhh_alignment.json"
-def load_preference_model(model_path):
-    model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=1)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    return model, tokenizer
+lora="google/gemma-2b"
 
+def load_preference_model(model_path):
+    model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=1,local_files_only=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_path,local_files_only=True)
+    return model, tokenizer
+def load_preference_model_LoRA(model_path):
+    model = AutoModelForSequenceClassification.from_pretrained(lora, num_labels=1)
+    tokenizer = AutoTokenizer.from_pretrained(lora)
+    config = PeftConfig.from_pretrained(model_path)
+    model = PeftModel(model, config)
+    return model, tokenizer
 def score_response(model, tokenizer, input_text, response_text):
     input_ids = tokenizer.encode(input_text + response_text, return_tensors="pt", truncation=True, padding=True)
     output = model(input_ids)[0]
     return output.item()
 
 def evaluate_preference_model(model_path, test_file):
-    model, tokenizer = load_preference_model(model_path)
+    if lora:
+        model, tokenizer = load_preference_model_LoRA(model_path)
+    else:
+        model, tokenizer = load_preference_model(model_path)
 
     with open(test_file, 'r') as f:
         test_data = json.load(f)
