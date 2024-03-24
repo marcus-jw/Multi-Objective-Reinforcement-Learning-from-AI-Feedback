@@ -1,14 +1,16 @@
-model_name="gpt2-medium"
+model_name="gemma-2b"
+model_folder="google/"
 principle="CAI"
-accelerate launch --config_file accelerate.yaml PM_training/train_PM.py \
-    --model_name="${model_name}" \
+python PM_training/train_PM.py \
+    --model_name="${model_folder}${model_name}" \
+    --dataset_dir="data/datasets/${model_name}" \
     --output_dir="data/PM_LoRAs/${model_name}_${principle}" \
-    --per_device_train_batch_size=2 \
-    --per_device_eval_batch_size=2 \
+    --per_device_train_batch_size=1 \
+    --per_device_eval_batch_size=1 \
     --num_train_epochs=1 \
     --gradient_accumulation_steps=1 \
     --gradient_checkpointing=False \
-    --learning_rate=2e-5 \
+    --learning_rate=5e-5 \
     --remove_unused_columns=False \
     --optim="adamw_torch" \
     --logging_steps=0.1 \
@@ -18,6 +20,6 @@ accelerate launch --config_file accelerate.yaml PM_training/train_PM.py \
     --num_proc=4 \
     --report_to="wandb" \
     --LoRA=True \
-    --LoRA_r=8 \
+    --LoRA_r=16 \
     --LoRA_alpha=32 \
     --LoRA_dropout=0.1

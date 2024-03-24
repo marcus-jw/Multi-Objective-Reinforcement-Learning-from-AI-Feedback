@@ -13,8 +13,8 @@ def extract_prompts_from_split(split_name):
         prompts.append(prompt)
         rejecteds.append(rejected)
         chosens.append(chosen)
-    df = pd.DataFrame({"prompt": prompts, "chosen": chosen, "rejected": rejected})
-    df.to_json(f"Data/hh-rlhf-{split_name}-extracted.jsonl", orient='records', lines=True)
+    df = pd.DataFrame({"prompt": prompts, "chosen": chosens, "rejected": rejecteds})
+    df.to_json(f"Data/datasets/hh-rlhf-{split_name}-extracted.jsonl", orient='records', lines=True)
 
 def extract_until_last_occurrence(text, substring="Assistant:"):
     last_index = text.rfind(substring)

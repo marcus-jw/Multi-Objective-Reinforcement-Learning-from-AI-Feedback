@@ -9,29 +9,45 @@ from accelerate import Accelerator
 from trl import RewardConfig, RewardTrainer
 from peft import LoraConfig, TaskType
 import os
+from huggingface_hub import login
+with open("hf_api.txt", "r") as hf:
+        token = hf.read()
+        login(token=token)
 accelerator = Accelerator()              
 if __name__ == "__main__":
     parser = HfArgumentParser(RewardConfig)
-
+    
     # Add custom arguments
     parser.add_argument("--model_name", type=str, default="gpt2-medium")
+    parser.add_argument("--dataset_dir", type=str, default=None)
     parser.add_argument("--num_proc", type=int, default=4)
     parser.add_argument("--principle", type=str, default=None)
     parser.add_argument("--LoRA", type=str, default="False")
     parser.add_argument("--LoRA_r", type=int, default=None)
     parser.add_argument("--LoRA_alpha", type=int, default=None)
     parser.add_argument("--LoRA_dropout", type=float, default=None)
-
     # Parse the dictionary into RewardConfig
     reward_config,config = parser.parse_args_into_dataclasses()
+    reward_config.gradient_checkpointing_kwargs={"use_reentrant":False}
     if config.principle:
-        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.principle}_train_rated.jsonl')
-        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.principle}_test_rated.jsonl')
+        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}_hh_train_feedback.jsonl')
+        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}_hh_test_feedback.jsonl')
     else:
-        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.model_name}_hh_train_feedback.jsonl')
-        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.model_name}_hh_test_feedback.jsonl') 
+        train_dataset = load_dataset('json', data_files=f'{config.dataset_dir}_hh_train_feedback.jsonl')
+        test_dataset = load_dataset('json', data_files=f'{config.dataset_dir}_hh_test_feedback.jsonl') 
     # If LoRA is true, create a LoraConfig object
-    if config.LoRA=="True":
+
+    if config.LoRA=="True" and "gemma" in config.model_name:
+        peft_config = LoraConfig(
+        task_type=TaskType.SEQ_CLS,
+        inference_mode=False,
+        r=config.LoRA_r,
+        lora_alpha=config.LoRA_alpha,
+        lora_dropout=config.LoRA_dropout,
+        use_rslora=True,
+        target_modules=["q_proj", "o_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"]
+        )
+    elif config.LoRA=="True":
         peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
         inference_mode=False,
