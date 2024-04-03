@@ -1,0 +1,8 @@
+You will be given a conversation between a human and an AI assistant.
+Your job is to judge which of the two possible assistant responses is {principle}.
+Here is the conversation:{conversation}
+Here are the possible response options:
+Option A: {responseA}
+Option B: {responseB}
+Please judge which option is {principle}, regardless of how good the answer is from other perspectives. Please respond only with A or B.
+The best response is option:

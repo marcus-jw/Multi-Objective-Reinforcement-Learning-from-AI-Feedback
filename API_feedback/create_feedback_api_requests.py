@@ -50,7 +50,7 @@ def get_principles_from_folder(principle_folder_path):
         principles = infile.readlines()
     return principles
         
-def prepare_request(model,conversation, responseA, responseB, principle,messages=[],metadata=None):
+def prepare_request(model,conversation, responseA, responseB,principle,messages=[],metadata=None):
     """
     Asks the feedback model which response is better based on a given principle using logits.
     
@@ -75,12 +75,13 @@ def prepare_request(model,conversation, responseA, responseB, principle,messages
         if responseB.endswith(suffix):
             responseB = responseB[:-len(suffix)]
             break  
-    prompt = f"Consider the following conversation between a human and an assistant: \n"\
-            f"Conversation: {conversation} \n '{principle}', "\
-            f"Options: \n" \
-            f"Option A. {responseA}\n" \
-            f"Option B. {responseB}\n" \
-            f"Please respond only with A or B. The answer is:\n\n"
+
+    vars_dict = {"conversation": conversation, "responseA": responseA, "responseB": responseB, "principle": principle}
+    with open("API_feedback/prompt.txt", "r") as file:
+        prompt = file.read().format(**vars_dict)
+
+
+
     messages.append({"role": "user", "content": prompt})  
     
     request = {
@@ -97,7 +98,6 @@ def prepare_request(model,conversation, responseA, responseB, principle,messages
 
 def process_dataset(input_filename, output_filename, model):
     if config.multi_objective == "True":
-        print(type(config.multi_objective))
         principles = get_principles_from_folder(config.principle_folder)
     else: 
         principles = get_principles(config.principle_path)
@@ -110,8 +110,12 @@ def process_dataset(input_filename, output_filename, model):
         for index,line in enumerate(tqdm(lines)):
             input_dict = json.loads(line.strip())
             question = input_dict["prompt"]
-            responseA = input_dict["responseA"]
-            responseB = input_dict["responseB"]
+            if "responseA" in input_dict:
+                responseA = input_dict["responseA"]
+                responseB = input_dict["responseB"]
+            elif "chosen" in input_dict:
+                responseA = input_dict["chosen"]
+                responseB = input_dict["rejected"]
             principle = random.choice(principles)
             request = prepare_request(model,question, responseA, responseB, principle,messages=conversation.copy(), metadata={"id":index,"principle":principle})
             result_json_str = json.dumps(request)

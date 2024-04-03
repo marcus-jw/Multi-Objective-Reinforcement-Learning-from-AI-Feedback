@@ -23,8 +23,10 @@ with open(config.response_path, 'r', encoding='utf-8') as infile, open(config.da
     responses = [json.loads(response.strip()) for response in responses]
     # sort the responses by id
     responses = sorted(responses, key=lambda x: x[2]["id"])
-    print(responses[0])
     for i in range(len(dataset)):
+        if "chosen" in dataset[i]:
+            dataset[i]["responseA"] = dataset[i].pop("chosen")
+            dataset[i]["responseB"] = dataset[i].pop("rejected")
         dataset[i]["id"] = int(responses[i][2]["id"])
         logprob_A = -10
         logprob_B = -10
