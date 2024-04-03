@@ -10,13 +10,18 @@ from trl import RewardConfig, RewardTrainer
 from peft import LoraConfig, TaskType
 import os
 from huggingface_hub import login
-with open("hf_api.txt", "r") as hf:
+import bitsandbytes as bnb
+from accelerate import init_empty_weights
+from  transformers import BitsAndBytesConfig
+import wandb
+
+if __name__ == "__main__":
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    with open("hf_api.txt", "r") as hf:
         token = hf.read()
         login(token=token)
-accelerator = Accelerator()              
-if __name__ == "__main__":
     parser = HfArgumentParser(RewardConfig)
-    
     # Add custom arguments
     parser.add_argument("--model_name", type=str, default="gpt2-medium")
     parser.add_argument("--dataset_dir", type=str, default=None)
@@ -26,15 +31,27 @@ if __name__ == "__main__":
     parser.add_argument("--LoRA_r", type=int, default=None)
     parser.add_argument("--LoRA_alpha", type=int, default=None)
     parser.add_argument("--LoRA_dropout", type=float, default=None)
+    parser.add_argument("--eight_bit", type=str, default="False")
     # Parse the dictionary into RewardConfig
     reward_config,config = parser.parse_args_into_dataclasses()
-    reward_config.gradient_checkpointing_kwargs={"use_reentrant":False}
     if config.principle:
-        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}_hh_train_feedback.jsonl')
-        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}_hh_test_feedback.jsonl')
+        principle = config.principle
     else:
-        train_dataset = load_dataset('json', data_files=f'{config.dataset_dir}_hh_train_feedback.jsonl')
-        test_dataset = load_dataset('json', data_files=f'{config.dataset_dir}_hh_test_feedback.jsonl') 
+        principle = "CAI"
+    if config.LoRA=="True":
+        wandb.init(project="MORLAIF", name=f"PM_{config.model_name}_{principle}_LoRA")
+    else:
+        wandb.init(project="MORLAIF", name=f"PM_{config.model_name}_{principle}")
+
+    #print(reward_config)
+    reward_config.gradient_checkpointing_kwargs={"use_reentrant":False}
+
+    if config.principle:
+        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}hh_train_{config.principle}_feedback.jsonl')
+        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}hh_test_{config.principle}_feedback.jsonl')
+    else:
+        train_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}hh_train_feedback.jsonl')
+        test_dataset = load_dataset('json', data_files=f'data/datasets/{config.dataset_dir}hh_test_feedback.jsonl') 
     # If LoRA is true, create a LoraConfig object
 
     if config.LoRA=="True" and "gemma" in config.model_name:
@@ -44,7 +61,6 @@ if __name__ == "__main__":
         r=config.LoRA_r,
         lora_alpha=config.LoRA_alpha,
         lora_dropout=config.LoRA_dropout,
-        use_rslora=True,
         target_modules=["q_proj", "o_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"]
         )
     elif config.LoRA=="True":
@@ -54,16 +70,18 @@ if __name__ == "__main__":
         r=config.LoRA_r,
         lora_alpha=config.LoRA_alpha,
         lora_dropout=config.LoRA_dropout,
-        use_rslora=True,
         )
     else:
         peft_config = None
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True)
+
+
     model = AutoModelForSequenceClassification.from_pretrained(
-        config.model_name, num_labels=1)
+        config.model_name,
+        num_labels=1)
     model.config.use_cache = False
-    if "gpt2" in config.model_name:
+    if getattr(model.config, "pad_token_id", None) is None:
             tokenizer.pad_token = tokenizer.eos_token
             model.config.pad_token_id = tokenizer.eos_token_id
 
@@ -108,15 +126,16 @@ if __name__ == "__main__":
         batched=True,
         num_proc=config.num_proc,
     )
-
-    trainer = accelerator.prepare(RewardTrainer(
+    
+    trainer = RewardTrainer(
             model=model,
             tokenizer=tokenizer,
             args=reward_config,
             train_dataset=train_dataset['train'],
             eval_dataset=test_dataset,
-            peft_config=peft_config
-        ))
+            peft_config=peft_config,
+             # optimizers = (adam,None)
+        )
     trainer.train()
     trainer.save_model(reward_config.output_dir + "/final" )
 

@@ -1,14 +1,14 @@
-model_name="gemma-2b"
-model_folder="google/"
+model_name="Llama-2-7b-hf"
+model_folder="meta-llama/"
 principle="CAI"
 python PM_training/train_PM.py \
     --model_name="${model_folder}${model_name}" \
-    --dataset_dir="data/datasets/${model_name}" \
+    --dataset_dir="data/datasets/" \
     --output_dir="data/PM_LoRAs/${model_name}_${principle}" \
     --per_device_train_batch_size=1 \
     --per_device_eval_batch_size=1 \
     --num_train_epochs=1 \
-    --gradient_accumulation_steps=1 \
+    --gradient_accumulation_steps=4 \
     --gradient_checkpointing=False \
     --learning_rate=5e-5 \
     --remove_unused_columns=False \
@@ -22,4 +22,6 @@ python PM_training/train_PM.py \
     --LoRA=True \
     --LoRA_r=16 \
     --LoRA_alpha=32 \
-    --LoRA_dropout=0.1
+    --LoRA_dropout=0.1 \
+    --eight_bit=True
+# --dataset_dir="data/datasets/${model_name}" \
