@@ -5,7 +5,7 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 - [How to Replicate](#how-to-replicate)
 - [Process](#process)
 - [Current Setup](#current-setup)
-- [Preliminary Results](#preliminary-results)
+- [Results](#results)
 - [Advantages](#advantages)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Acknowledgments](#acknowledgments)
@@ -19,34 +19,42 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 1. **Build Docker Image**: Run `docker build -t morlaif .` to build the Docker environment.
 2. **Run Docker Container**: Use `docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --rm morlaif` to start the container.
 3. **Prepare the Dataset**: Execute `process_HH_dataset.py` to format the anthropic `HH-rlhf` dataset.
-4. **Generate Responses**: Use `generate_responses_GPT2.py` or `generate_responses_llama.py`  for sampling from the target model.
-5. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 (OpenAI API key required). Note that this will send API requests in parallel, set max_requests_per_minute appropriately.
-6. **Launch PM Training**: Initiate preference model training with the provided bash scripts.
-7. **Start PPO Training**: Follow up with PPO training using the designated bash scripts.
+4. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 according to the different principles in `principles`. Note that this will send API requests in parallel, set max_requests_per_minute appropriately.
+5. **Launch PM Training**: Initiate preference model training with the provided bash scripts in `PM_training`.
+6. **Create a Scalarization Function**: A few different scalarization functions are defined in `PPO_training/MORL_scalarizer.py`. Good weights can be calculated using `PM_training\PM_regression.py`
+7. **Start PPO Training**: Follow up with PPO training using the designated bash scripts in `PPO_training`.
 
 ## Process:
 
  ![](https://github.com/carolius/MORLAIF/blob/main/MORLAIF.png?raw=true)
  
 ### Preference modeling:
-1.	**Sampling from Target Model:** The target model produces pairs of responses for prompts. This is implemented in `generate_responses_GPT2.py` which uses the HH-rlhf dataset.
+1.	**Sampling from Target Model:** The target model produces pairs of responses for prompts. 
 2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better for each individual principle.
 3.	**Training Preference Models:** These ratings are then used to train a separate preference model for each principle. The preference model can either be a full model or a Low Rank Adaptation (LoRA).
 
 ### RL from AI feedback:
 
-4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities. A few scalarization functions are implemented in `MORL_scalarizer.py`. 
+4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities.
 5.	**PPO Training:** The combined score from the scalarization function acts as a reward signal, guiding the training of the target model using Proximal Policy Optimization (PPO).
 
 ## Current Setup:
-- **Target Model:** The code currently supports GPT-2 medium, large and XL along with Llama-7B. I plan to add Llama-13B, Llama-70B, Gemma-2B and Gemma-7B.
-- **Preference Models:** Currently the code implements the finetuning of GPT-2, Llama-7B or LoRAs of these models as the preference models. Again, I plan to add more Llama models and Gemma.
+- **Target Model:** The code currently supports GPT-2 small/medium/large/XL, Llama-7B/13B/70B and Gemma-2B/7B.
+- **Preference Models:** Currently the code implements the finetuning of GPT-2, Llama-7B or LoRAs of these models as the preference models.
 - **Feedback Model:** GPT-3.5 and GPT-4 are used to rate response pairs according to each individual principle.
-- **Dataset:** Currently Anthropic's HH-rlhf dataset is used; more datasets will be added in the future.
+- **Dataset:** Currently Anthropic's HH-rlhf dataset is used.
 - **Hardware:** For GPT2 models a RTX 3090 24GB was used while for Llama models an instance with 8x A100 80gb was used
-## Preliminary Results
+## Results
  ![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
-For the larger models, using a weighted sum of the preference models seems to do significantly better than standard Constitutional AI. Both softmin and setting the sycophancy weight to zero seems to degrade performance to roughly inline with single-objective. That setting the sycophancy PM weight to zero reduces performance makes sense as if humans prefer sycophancy reducing it should align worse with human preferences, therefore even though zero-syco performs worse than linear it might make more sense to use it.
+The figure shows PM accuracy on the HH-rlhf test set for standard Constitutional AI RLAIF, MORLAIF with 5 principles and with 14 principles. The dots indicate the individual PM accuracies on the individual principle feedback for the HH-rlhf test set. We can see that 14 principles does better than 5 which does better than CAI, but that the advantage seems to decrease with increasing model size. So while MORLAIF seems like a large performance improvment here it could be the case that the advantage disappears before reaching the size of frontier models.
+
+![](https://github.com/carolius/MORLAIF/blob/main/win_rate.png?raw=true)
+This figure shows the win rate of CAI vs 5 principle MORLAIF as judged by crowdworkers having conversations with gpt2-medium and Llama-2-7b. As we can see MORLAIF has a large win rate for gpt2-medium (although gpt2-medium is pretty bad at conversation) and a smaller but still significant win rate for Llama-2-7b.
+
+
+![](https://github.com/carolius/MORLAIF/blob/main/correlations.png?raw=true)
+This figure shows the correlations between the feedback for the different principles and CAI. While the correlations are quite strong, the different preference models are clearly not being trained to detect the exact same thing. It is also notable that sycophancy correlates weakly with the other principles. The sycophancy is also the only preference model which recives a negative weight in the scalarization function regression, meaning that the prefered responses are more sycophantic than the reject ones. 
+
 ## Advantages
 
 **More specific and unique principles.** Unlike Anthropic's Constitutional AI principles which are quite general, contain many different tasks and are similar to each other; MORLAIF principles could be made very specific and unique.  For example: “Please choose the assistant response that is as harmless and ethical as possible. Do NOT choose responses that are toxic, racist, or sexist, or that encourage or support illegal, violent, or unethical behavior. Above all the assistant’s response should be wise, peaceful, and ethical” could be turned into separate principles for toxicity, violence, illegality etc. It seems likely that it is an easier task to determine whether a response is one of these things than all of them together. This means that labelling will likely be better, leading to improved safety performance of the final model.
