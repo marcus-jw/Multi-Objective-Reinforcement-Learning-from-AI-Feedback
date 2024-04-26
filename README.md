@@ -45,14 +45,17 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 - **Dataset:** Currently Anthropic's HH-rlhf dataset is used.
 - **Hardware:** For GPT2 models a RTX 3090 24GB was used while for Llama models an instance with 8x A100 80gb was used
 ## Results
- ![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
+![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
+
 The figure shows PM accuracy on the HH-rlhf test set for standard Constitutional AI RLAIF, MORLAIF with 5 principles and with 14 principles. The dots indicate the individual PM accuracies on the individual principle feedback for the HH-rlhf test set. We can see that 14 principles does better than 5 which does better than CAI, but that the advantage seems to decrease with increasing model size. So while MORLAIF seems like a large performance improvment here it could be the case that the advantage disappears before reaching the size of frontier models.
 
 ![](https://github.com/carolius/MORLAIF/blob/main/win_rate.png?raw=true)
+
 This figure shows the win rate of CAI vs 5 principle MORLAIF as judged by crowdworkers having conversations with gpt2-medium and Llama-2-7b. As we can see MORLAIF has a large win rate for gpt2-medium (although gpt2-medium is pretty bad at conversation) and a smaller but still significant win rate for Llama-2-7b.
 
 
 ![](https://github.com/carolius/MORLAIF/blob/main/correlations.png?raw=true)
+
 This figure shows the correlations between the feedback for the different principles and CAI. While the correlations are quite strong, the different preference models are clearly not being trained to detect the exact same thing. It is also notable that sycophancy correlates weakly with the other principles. The sycophancy is also the only preference model which recives a negative weight in the scalarization function regression, meaning that the prefered responses are more sycophantic than the reject ones. 
 
 ## Advantages
