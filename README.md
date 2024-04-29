@@ -1,66 +1,83 @@
 # Multi-Objective Reinforcement Learning from AI Feedback (WIP)
-This repository implements Multi-Objective Reinforcement Learning from AI Feedback (MORLAIF). Instead of training the target model with a single preference model representing "human preferences" we break this down into many simpler principles such as "toxicity”, “truthfulness” and “sycophancy”. This is essentially a form of task decomposition on the preference modeling stage of a RLAIF or RLHF system. It seems likely that this will improve alignment performance, reduce Goodharting and improve interpretability. This project aims to investigate and measure this.
-
+This repository implements Multi-Objective Reinforcement Learning from AI Feedback (MORLAIF). Instead of training the target model with a single preference model representing "all human preferences", the idea is to break this down into many simpler principles such as "toxicity", "truthfulness" and "sycophancy". This is essentially a form of task decomposition on the preference modeling stage of a RLAIF or RLHF system. It seems likely that this will improve alignment performance, reduce Goodharting and improve interpretability. So far, the results have been very good for smaller models but the improvement is more limited for larger ones.
 ## Table of Contents
-- [How to Replicate](#how-to-replicate)
-- [Process](#process)
+- [Replication](#replication)
+- [Methodology](#methodology)
 - [Current Setup](#current-setup)
+- [Principles](#principles)
 - [Results](#results)
-- [Advantages](#advantages)
+- [Theoretical Advantages](#theoretical-advantages)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Acknowledgments](#acknowledgments)
 
-## How to replicate:
-### Requirements
-- Docker
-- OpenAI API Key
-
-### Steps
+## Replication:
 1. **Build Docker Image**: Run `docker build -t morlaif .` to build the Docker environment.
 2. **Run Docker Container**: Use `docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --rm morlaif` to start the container.
-3. **Prepare the Dataset**: Execute `process_HH_dataset.py` to format the anthropic `HH-rlhf` dataset.
-4. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 according to the different principles in `principles`. Note that this will send API requests in parallel, set max_requests_per_minute appropriately.
+3. **Prepare the Dataset**: Execute `process_HH_dataset.py` to format the anthropic `hh-rlhf` dataset. The principle specific datasets in the `data/datasets` folder can alternatively be used.  
+4. **Acquire Feedback**: Run `get_feedback.bash` to obtain feedback from GPT 3.5 or 4 according to the different principles in `principles`. Note that this will by defualt send API requests in parallel, set `max_requests_per_minute` appropriately.
 5. **Launch PM Training**: Initiate preference model training with the provided bash scripts in `PM_training`.
-6. **Create a Scalarization Function**: A few different scalarization functions are defined in `PPO_training/MORL_scalarizer.py`. Good weights can be calculated using `PM_training\PM_regression.py`
+6. **Create a Scalarization Function**: A few different scalarization functions are defined in `PPO_training/MORL_scalarizer.py`. Good weights can be calculated using `PM_training/PM_regression.py`
 7. **Start PPO Training**: Follow up with PPO training using the designated bash scripts in `PPO_training`.
 
-## Process:
+## Methodology:
 
  ![](https://github.com/carolius/MORLAIF/blob/main/MORLAIF.png?raw=true)
  
 ### Preference modeling:
-1.	**Sampling from Target Model:** The target model produces pairs of responses for prompts. 
-2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better for each individual principle.
+1.	**Generating responses:** The target model produces pairs of responses for prompts. Three different approaches were tried: 
+   - Sampling from the target model.
+   - Using the hh-rlhf responses.
+   - Generating separate principle specific datasets for each principle.
+2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better according to each individual principle. Tests were done using 5 principles and 14 principles.
 3.	**Training Preference Models:** These ratings are then used to train a separate preference model for each principle. The preference model can either be a full model or a Low Rank Adaptation (LoRA).
 
 ### RL from AI feedback:
 
-4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities.
+4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities. A logistic regression on a human preference dataset is a starting point for weights.
 5.	**PPO Training:** The combined score from the scalarization function acts as a reward signal, guiding the training of the target model using Proximal Policy Optimization (PPO).
 
 ## Current Setup:
-- **Target Model:** The code currently supports GPT-2 small/medium/large/XL, Llama-7B/13B/70B and Gemma-2B/7B.
-- **Preference Models:** Currently the code implements the finetuning of GPT-2, Llama-7B or LoRAs of these models as the preference models.
+- **Target Model:** The code currently supports GPT-2 small/medium/large/XL, Llama-2-7B/13B/70B and Gemma-2B/7B.
+- **Preference Models:** Currently the code implements the finetuning of GPT-2, Llama-2, Gemma or LoRAs of these models as the preference models.
 - **Feedback Model:** GPT-3.5 and GPT-4 are used to rate response pairs according to each individual principle.
-- **Dataset:** Currently Anthropic's HH-rlhf dataset is used.
-- **Hardware:** For GPT2 models a RTX 3090 24GB was used while for Llama models an instance with 8x A100 80gb was used
+- **Datasets:** Currently Anthropic's hh-rlhf dataset is used along with claude-3 generated principle specific datasets.
+- **Hardware:** For GPT2 models a RTX 3090 24GB was used while for Llama and Gemma models a remote cluster with 8x A100 80gb was used.
+## Principles:
+Principles 1-5 were used in both 5- and 14-principle MORLAIF while 6-14 were only used in the 14-principle version.
+1. helpfulness
+2. ethicality
+3. factuality
+4. toxicity
+5. sycophancy
+6. empathy
+7. relevance
+8. context
+9. bias
+10. understandability
+11. repetitiveness
+12. detail
+13. conciseness
+14. jailbreaking
+The last principle, "jailbreaking" is special in that rather than being a short single sentence like the other principles it contains a longer defintion of jailbreaking and what a successful vs failed jailbreak looks like (see `principles-14/jailbreaking.txt`). 
+
+
 ## Results
 ![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
 
-The figure shows PM accuracy on the HH-rlhf test set for standard Constitutional AI RLAIF, MORLAIF with 5 principles and with 14 principles. The dots indicate the individual PM accuracies on the individual principle feedback for the HH-rlhf test set. We can see that 14 principles does better than 5 which does better than CAI, but that the advantage seems to decrease with increasing model size. So while MORLAIF seems like a large performance improvment here it could be the case that the advantage disappears before reaching the size of frontier models.
+The figure shows PM accuracy on the hh-rlhf test set for standard Constitutional AI RLAIF, MORLAIF with 5 principles and with 14 principles. The dots indicate the individual PM accuracies on the individual principle feedback for the hh-rlhf test set. We can see that 14 principles performs better than 5 which performs better than CAI, but that the advantage seems to decrease with increasing model size. So while MORLAIF seems like a large performance improvement here it could be the case that the advantage disappears completely before reaching the size of frontier models.
 
 ![](https://github.com/carolius/MORLAIF/blob/main/win_rate.png?raw=true)
 
-This figure shows the win rate of CAI vs 5 principle MORLAIF as judged by crowdworkers having conversations with gpt2-medium and Llama-2-7b. As we can see MORLAIF has a large win rate for gpt2-medium (although gpt2-medium is pretty bad at conversation) and a smaller but still significant win rate for Llama-2-7b.
+This figure shows the win rate of CAI vs 5 principle MORLAIF as judged by crowdworkers having conversations with gpt2-XL and Llama-2-7b. As we can see MORLAIF has a large win rate for gpt2-XL (although gpt2-XL is pretty bad at conversation) and a smaller but still significant win rate for Llama-2-7b.
 
 
 ![](https://github.com/carolius/MORLAIF/blob/main/correlations.png?raw=true)
 
-This figure shows the correlations between the feedback for the different principles and CAI. While the correlations are quite strong, the different preference models are clearly not being trained to detect the exact same thing. It is also notable that sycophancy correlates weakly with the other principles. The sycophancy is also the only preference model which recives a negative weight in the scalarization function regression, meaning that the prefered responses are more sycophantic than the reject ones. 
+This figure shows the correlations between the feedback for the different principles and CAI. While the correlations are quite strong, the different preference models are clearly not being trained to detect the exact same thing. It is also notable that sycophancy correlates weakly with the other principles. The sycophancy is also the only preference model which receives a negative weight in the scalarization function regression, meaning that the preferred responses are more sycophantic than the rejected ones. 
 
-## Advantages
+## Theoretical advantages compared to single principle RLAIF
 
-**More specific and unique principles.** Unlike Anthropic's Constitutional AI principles which are quite general, contain many different tasks and are similar to each other; MORLAIF principles could be made very specific and unique.  For example: “Please choose the assistant response that is as harmless and ethical as possible. Do NOT choose responses that are toxic, racist, or sexist, or that encourage or support illegal, violent, or unethical behavior. Above all the assistant’s response should be wise, peaceful, and ethical” could be turned into separate principles for toxicity, violence, illegality etc. It seems likely that it is an easier task to determine whether a response is one of these things than all of them together. This means that labelling will likely be better, leading to improved safety performance of the final model.
+**More specific and unique principles.** Unlike Anthropic's Constitutional AI principles which are quite general, contain many different tasks and are similar to each other; MORLAIF principles could be made very specific and unique.  For example: "Please choose the assistant response that is as harmless and ethical as possible. Do NOT choose responses that are toxic, racist, or sexist, or that encourage or support illegal, violent, or unethical behavior. Above all the assistant’s response should be wise, peaceful, and ethical" could be turned into separate principles for toxicity, violence, illegality etc. It seems likely that it is an easier task to determine whether a response is one of these things than all of them together. This means that the labelling will likely be better, leading to improved safety performance of the final model.
 
 **More principles.** MORLAIF allows us to include numerous minor principles without diluting focus on major ones. This can be done by giving these lesser principles low weight or only optimizing them after the important principles reach a certain threshold.
 
@@ -68,7 +85,7 @@ This figure shows the correlations between the feedback for the different princi
 
 **Easier to fine-tune.** In a MORLAIF system you can change the behavior of the target model without needing to retrain the preference models, and the output space is in some sense continuous allowing you to easily reach any point on a Pareto frontier. With standard constitutional AI the weighting of the principles in a constitution is implicit and depends on the wording, number of principles which contain the thing you care about. Say you have a well-trained model that, apart from occasionally outputting violent content, performs well. To fix the violence problem should you A) add another principle which targets violence more specifically, B) add violence as a consideration to a larger proportion of your principles or C) reword your principles to put a larger focus on violence? In MORL by contrast, you could simply increase the weight of your violence reward function.
 
-**Less Goodharting/overfitting/reward hacking.** Training on multiple objectives means that we are less likely to end up with some extreme Goodharted solution as our model must score well on all objectives. “Human preferences” are quite vague whereas a single principle can be made very specific, meaning that a model trained on many of them will be less likely to overfit even with extreme optimization pressure. Reward hacking is a large problem when training using preference models, which is why most methods use some regularization such as KL-divergence to make sure the model doesn't stray too far from the original weights. I hypothesize that in the multi-objective case we will require much less regularization.
+**Less Goodharting/overfitting/reward hacking.** Training on multiple objectives means that we are less likely to end up with some extreme Goodharted solution as our model must score well on all objectives. "Human preferences" are quite vague whereas a single principle can be made very specific, meaning that a model trained on many of them will be less likely to overfit even with extreme optimization pressure. Reward hacking is a large problem when training using preference models, which is why most methods use some regularization such as KL-divergence to make sure the model doesn't stray too far from the original weights. I hypothesize that in the multi-objective case we will require much less regularization.
 
 **Less risk of deception in the preference model.** Since preference models can be made much smaller than they are now it seems likely that it will be harder for them to be deceptive and easier for us to detect it if they are. This is a form of task decomposition; we decompose the task of the preference model into many sub tasks which each represent a simpler component of the full task of representing human preferences. 
 
