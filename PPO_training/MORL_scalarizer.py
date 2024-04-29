@@ -1,4 +1,5 @@
 import torch
+import json
 # This file contains different Multi-Objective RL scalarization functions which will be tested
 class MORLScalarizer:
     """
@@ -21,12 +22,8 @@ class MORLScalarizer:
         }
         self.func = func_dict[func]
         
-        # Read the preference file and store the contents as a dictionary
-        self.preference_weights = {}
-        with open(weight_file, "r") as file:
-            for line in file:
-                key, value = line.strip().split(":")
-                self.preference_weights[key] = int(value)
+        # Read the preference file and store the weights
+        self.preference_weights = json.load(open(weight_file))
     
 
     

@@ -27,7 +27,7 @@ class PreferenceModelHotswapper:
    adapter_folder : str
        The path to the folder containing adapter models.
    """
-    def __init__(self, model_name, adapter_folder,lora_config):
+    def __init__(self, model_name, adapter_folder,principles,lora_config):
         #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer.pad_token = self.tokenizer.eos_token 
@@ -44,12 +44,10 @@ class PreferenceModelHotswapper:
 
         self.adapter_names = []
         
-        # Load all adapters from the given folder
-        for adapter_name in os.listdir(adapter_folder):
-            adapter_path = os.path.join(adapter_folder, adapter_name)
-            # Check if the adapter name already exists and skip or handle appropriately
-            self.model.load_adapter(adapter_path, adapter_name)
-            self.adapter_names.append(adapter_name)
+        for principle in principles:
+            adapter_path = adapter_folder + model_name +  "_" + principle
+            self.model.load_adapter(adapter_path, principle)
+            self.adapter_names.append(principle)
             
     def compute_scores(self, input_ids, attention_mask):
         scores = []
