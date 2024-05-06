@@ -1,5 +1,6 @@
 import torch
 import json
+import numpy as np
 # This file contains different Multi-Objective RL scalarization functions which will be tested
 class MORLScalarizer:
     """
@@ -17,7 +18,8 @@ class MORLScalarizer:
         func_dict = {
             "max_min": self.max_min,
             "soft_max_min": self.soft_max_min,
-            "max_avg": self.max_avg,
+            "max_avg": self.linear,
+            "linear": self.linear,
             "zero_syco": self.zero_syco
         }
         self.func = func_dict[func]
@@ -88,7 +90,7 @@ class MORLScalarizer:
         r = torch.tensor(list(rewards.values()), dtype=torch.float32)
         return -torch.log(torch.sum(torch.exp(-r))).item()
     
-    def max_avg(self,rewards):
+    def linear(self,rewards):
         """
         Weighted average scalarization.
         
@@ -99,8 +101,10 @@ class MORLScalarizer:
         Returns:
             float: Scalarized reward.
         """
-        r = torch.tensor(list(rewards.values()), dtype=torch.float32)
-        return torch.sum(r).item()
+        numpy_array = np.array(list(rewards.values()))
+        r = torch.tensor(numpy_array, dtype=torch.float32)
+        #print("lin",r)
+        return r.sum(dim=0)
         
     def zero_syco(self,rewards):
         """

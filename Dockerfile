@@ -15,6 +15,7 @@ RUN mkdir -p $HF_HOME
 
 # Install SSH server
 RUN apt-get update && apt-get install -y openssh-server tmux 
+RUN apt-get update && apt-get install -y libaio-dev
 RUN mkdir -p ~/.ssh
 
 RUN pip install OhMyRunPod runpod

@@ -27,33 +27,36 @@ class PreferenceModelHotswapper:
    adapter_folder : str
        The path to the folder containing adapter models.
    """
-    def __init__(self, model_name, adapter_folder,principles,lora_config):
-        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+    def __init__(self, model_path,principles,peft_config):
+        model_name = model_path.split("/")[-1]
+        self.device = torch.cuda.device_count() - 1
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path + "_" + principles[0] + "/final", use_fast=True)
         self.tokenizer.pad_token = self.tokenizer.eos_token 
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=1, torch_dtype=torch.float)
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
-        peft_config = LoraConfig(
-            task_type=TaskType.SEQ_CLS,
-            inference_mode=True,
-            r=lora_config.r,
-            lora_alpha=lora_config.alpha,
-            lora_dropout=lora_config.dropout,
-        )
         self.model = get_peft_model(self.model, peft_config).to(self.device)
 
         self.adapter_names = []
         
         for principle in principles:
-            adapter_path = adapter_folder + model_name +  "_" + principle
-            self.model.load_adapter(adapter_path, principle)
-            self.adapter_names.append(principle)
+            adapter_path = model_path  +  "_" + principle + "/final"
+            if not os.path.exists(adapter_path):
+                print(f"Adapter path {adapter_path} does not exist.")
+            else:
+                try:
+                    self.model.load_adapter(adapter_path, adapter_name = principle,is_trainable = False,torch_device = self.device)
+                    print(f"Loaded adapter {principle} successfully.")
+                    self.adapter_names.append(principle)
+                except Exception as e:
+                    print(f"Failed to load adapter {principle}: {str(e)}")
+
             
     def compute_scores(self, input_ids, attention_mask):
-        scores = []
+        scores = {}
         for adapter_name in self.adapter_names:
             # Set the current adapter as active
             self.model.set_adapter(adapter_name)
+            self.model.eval()
 
             # Perform the model inference in a batch
             with torch.no_grad():
@@ -62,6 +65,5 @@ class PreferenceModelHotswapper:
             # Extract the logits as scores
             adapter_scores = outputs.logits.squeeze()
 
-            scores.append(adapter_scores.cpu().numpy()) 
-
+            scores[adapter_name]=(adapter_scores.cpu().numpy()) 
         return scores
