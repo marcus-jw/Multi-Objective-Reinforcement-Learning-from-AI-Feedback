@@ -10,17 +10,14 @@ from trl import RewardConfig, RewardTrainer
 from peft import LoraConfig, TaskType
 import os
 from huggingface_hub import login
-import bitsandbytes as bnb
 from accelerate import init_empty_weights
 from  transformers import BitsAndBytesConfig
 import wandb
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
 if __name__ == "__main__":
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-    with open("hf_api.txt", "r") as hf:
-        token = hf.read()
-        login(token=token)
     parser = HfArgumentParser(RewardConfig)
     # Add custom arguments
     parser.add_argument("--model_name", type=str, default="gpt2-medium")
@@ -31,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--LoRA_r", type=int, default=None)
     parser.add_argument("--LoRA_alpha", type=int, default=None)
     parser.add_argument("--LoRA_dropout", type=float, default=None)
-    parser.add_argument("--eight_bit", type=str, default="False")
+    parser.add_argument("--margin", type=str, default="False")
     # Parse the dictionary into RewardConfig
     reward_config,config = parser.parse_args_into_dataclasses()
     if config.principle:
@@ -74,7 +71,7 @@ if __name__ == "__main__":
     else:
         peft_config = None
 
-    tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True, padding='max_length', max_length=reward_config.max_length, truncation=True)
 
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -90,29 +87,31 @@ if __name__ == "__main__":
         def preprocess_func(examples):
             inputs_chosen, inputs_rejected = [], []
             attention_masks_chosen, attention_masks_rejected = [], []
-
+            margins = []
             for i in range(len(examples['prompt'])):
                 question, answerA, answerB = examples['prompt'][i], examples['responseA'][i], examples['responseB'][i]
                 logitsA, logitsB = examples['logits_A'][i], examples['logits_B'][i]
 
                 if logitsA > logitsB:
-                    tokenized_chosen = tokenizer(question + answerA, truncation=True, padding='max_length', max_length=max_length)
-                    tokenized_rejected = tokenizer(question + answerB, truncation=True, padding='max_length', max_length=max_length)
+                    tokenized_chosen = tokenizer(question + answerA, truncation="longest_first", padding='longest', max_length=max_length)
+                    tokenized_rejected = tokenizer(question + answerB, truncation="longest_first", padding='longest', max_length=max_length)
+                    margin = logitsA - logitsB
                 else:
-                    tokenized_chosen = tokenizer(question + answerB, truncation=True, padding='max_length', max_length=max_length)
-                    tokenized_rejected = tokenizer(question + answerA, truncation=True, padding='max_length', max_length=max_length)
-
+                    tokenized_chosen = tokenizer(question + answerB, truncation="longest_first", padding='longest', max_length=max_length)
+                    tokenized_rejected = tokenizer(question + answerA, truncation="longest_first", padding='longest', max_length=max_length)
+                    margin = logitsB - logitsA
                 inputs_chosen.append(tokenized_chosen['input_ids'])
                 attention_masks_chosen.append(tokenized_chosen['attention_mask'])
                 inputs_rejected.append(tokenized_rejected['input_ids'])
                 attention_masks_rejected.append(tokenized_rejected['attention_mask'])
-
-            return {
-                'input_ids_chosen': inputs_chosen,
+                margins.append(margin)
+            d = {'input_ids_chosen': inputs_chosen,
                 'attention_mask_chosen': attention_masks_chosen,
                 'input_ids_rejected': inputs_rejected,
-                'attention_mask_rejected': attention_masks_rejected,
-            }
+                'attention_mask_rejected': attention_masks_rejected}
+            if config.margin=="True":
+                d['margin'] = margins
+            return d
         return preprocess_func
     
     # preprocess the dataset
@@ -134,10 +133,9 @@ if __name__ == "__main__":
             train_dataset=train_dataset['train'],
             eval_dataset=test_dataset,
             peft_config=peft_config,
-             # optimizers = (adam,None)
         )
     trainer.train()
     trainer.save_model(reward_config.output_dir + "/final" )
-
+    wandb.finish()
 
 

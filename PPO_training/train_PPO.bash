@@ -16,6 +16,7 @@ accelerate launch --config_file accelerate.yaml PPO_training/PPO_training.py \
     --test_set_path "data/datasets/hh-rlhf-test-extracted.jsonl" \
     --train.checkpoint_dir "data/trained_models/${base_model_name}_5" \
     --reward_batch_size 2 \
-    --PMs "ethicality,factuality,helpfulness,sycophancy,toxicity,bias,conciseness,context,detail,empathy,jailbreaking,relevance,repetitivness,understandability" \
+    --MORL True \
+    --PMs "ethicality,factuality,helpfulness,sycophancy,toxicity,bias,conciseness,context,detail,empathy,relevance,understandability" \
     --scalarizer "linear" \
     --weight_file "data/weights/linear_14.json" 

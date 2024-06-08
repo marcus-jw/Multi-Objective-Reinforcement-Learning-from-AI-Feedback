@@ -2,8 +2,7 @@ base_model_name="gemma-2b"
 base_model_folder="google/"
 PM_model_name="gemma-2b"
 principle="CAI"
-#accelerate launch --config_file accelerate.yaml PPO_training/PPO_training.py \
-python PPO_training/PPO_training.py \
+accelerate launch --config_file accelerate.yaml PPO_training/PPO_training.py \
     --train.epochs 10000 \
     --train.batch_size 4 \
     --train.minibatch_size 1 \

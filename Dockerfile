@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SHELL=/bin/bash
 
-WORKDIR /
+WORKDIR /workspace
 
 # Set HF_HOME to a writable directory
 ENV HF_HOME=/workspace/.cache/huggingface

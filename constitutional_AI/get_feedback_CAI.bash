@@ -32,6 +32,3 @@ if [ $? -ne 0 ]; then
     echo "process_feedback_api_response.py failed. Exiting..."
     exit 1
 fi
-# If all scripts executed successfully, delete the files
-# rm data/api_responses.jsonl data/api_requests.jsonl
-# echo "Temporary files deleted successfully."

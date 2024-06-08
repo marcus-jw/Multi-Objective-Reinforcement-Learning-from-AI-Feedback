@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
 from accelerate import Accelerator
-#import time
+import time
 from huggingface_hub import login
 
 def main():

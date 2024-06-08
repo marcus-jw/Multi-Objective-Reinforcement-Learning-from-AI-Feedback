@@ -1,7 +1,7 @@
 model_name="Llama-2-7b-hf"
 model_folder="meta-llama/"
 principle="CAI"
-python PM_training/train_PM.py \
+accelerate launch --config_file accelerate.yaml PM_training/train_PM.py \
     --model_name="${model_folder}${model_name}" \
     --dataset_dir="data/datasets/" \
     --output_dir="data/PM_LoRAs/${model_name}_${principle}" \

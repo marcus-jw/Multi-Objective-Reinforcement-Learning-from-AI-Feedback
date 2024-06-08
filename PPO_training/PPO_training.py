@@ -29,13 +29,6 @@ from trlx.data.default_configs import (
     TrainConfig,
     TRLConfig,
 )
-@register_trainer("CustomAcceleratePPOTrainer")
-class CustomAcceleratePPOTrainer(AcceleratePPOTrainer):
-    # Override the save methods to save the model in a different way
-    def save(self, directory: Optional[str] = None, **kwargs):
-        pass
-    def save_pretrained(self, directory: Optional[str] = None, **kwargs):
-        super().save_pretrained(self.config.train.checkpoint_dir, **kwargs)
        
 
         
@@ -90,8 +83,9 @@ def create_reward_fn():
             preference_model = PeftModel(preference_model, peft_config)
         else:
             preference_model = AutoModelForSequenceClassification.from_pretrained(args.PM_path)
+        preference_model.config.pad_token_id = preference_tokenizer.pad_token_id
     PM_device = torch.cuda.device_count() - 1
-    preference_model.config.pad_token_id = preference_tokenizer.pad_token_id
+    
     if not args.MORL:
         preference_model.eval()
         preference_model.requires_grad_(False)
@@ -140,7 +134,6 @@ def main():
     random.shuffle(prompts)
     eval_prompts = [{"prompt": x["prompt"]} for x in islice(test_dataset["train"], 300)]
     reward_fn = create_reward_fn()
-    config.train.trainer= "CustomAcceleratePPOTrainer"
     trlx.train(
         prompts=prompts,
         eval_prompts=eval_prompts,

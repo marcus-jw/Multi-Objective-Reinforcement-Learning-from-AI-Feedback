@@ -13,4 +13,4 @@ trl==0.8.1
 wandb==0.16.6
 git+https://github.com/huggingface/peft
 git+https://github.com/carolius/trlx_sharded
-
+git+https://github.com/EleutherAI/lm-evaluation-harness

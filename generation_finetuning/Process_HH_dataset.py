@@ -1,7 +1,6 @@
 from datasets import load_dataset, Dataset
 import pandas as pd
 
-# This function extracts the prompts used in the hh-rlhf dataset
 def extract_prompts_from_split(split_name):
     dataset = load_dataset("Anthropic/hh-rlhf", split=split_name)
     prompts = []
@@ -25,10 +24,8 @@ def extract_until_last_occurrence(text, substring="Assistant:"):
     end_index = last_index + len(substring)
     return text[:end_index], text[end_index:]
 
-# Extract prompts from train split
 extract_prompts_from_split("train")
 
-# Extract prompts from test split
 extract_prompts_from_split("test")
     
     
