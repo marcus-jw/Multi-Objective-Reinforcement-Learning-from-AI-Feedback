@@ -1,5 +1,5 @@
 # Multi-Objective Reinforcement Learning from AI Feedback (WIP)
-This repository implements Multi-Objective Reinforcement Learning from AI Feedback (MORLAIF). Instead of training the target model with a single preference model representing "all human preferences", the idea is to break this down into many simpler principles such as "toxicity", "truthfulness" and "sycophancy". This is essentially a form of task decomposition on the preference modeling stage of a RLAIF or RLHF system. It seems likely that this will improve alignment performance, reduce Goodharting and improve interpretability. So far, the results have been very good for smaller models but the improvement is more limited for larger ones.
+This repository implements Multi-Objective Reinforcement Learning from AI Feedback (MORLAIF). Instead of training the target model with a single preference model representing "all human preferences", the idea is to break this down into many simpler principles such as "toxicity", "factuality" and "sycophancy". This is essentially a form of task decomposition on the preference modeling stage of a RLAIF or RLHF system. It improves alignment performance, interpretability and allows fine-grained control over the model's behavior without retraining preference models. The results show that MORLAIF outperforms standard single-objective RLAIF baselines, and that it can be used to align larger language models using smaller preference models.
 ## Table of Contents
 - [Replication](#replication)
 - [Methodology](#methodology)
@@ -24,16 +24,13 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
  ![](https://github.com/carolius/MORLAIF/blob/main/MORLAIF.png?raw=true)
  
 ### Preference modeling:
-1.	**Generating responses:** The target model produces pairs of responses for prompts. Three different approaches were tried: 
-   - Sampling from the target model.
-   - Using the hh-rlhf responses.
-   - Generating separate principle specific datasets for each principle.
-2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better according to each individual principle. Tests were done using 5 principles and 14 principles.
-3.	**Training Preference Models:** These ratings are then used to train a separate preference model for each principle. The preference model can either be a full model or a Low Rank Adaptation (LoRA).
+1.	**Generating responses:** A SFT model produces pairs of responses for prompts. 
+2.	**Rating by Feedback Model:** A feedback model evaluates which of these responses is better according to each individual principle. Most experiments used the 12 principles listed below.
+3.	**Training Preference Models:** The ratings are used to train separate preference models (full models or LoRAs) for each principle.
 
 ### RL from AI feedback:
 
-4.	**MORL Scalarization Function:** Each preference model will assign a rating to a given output, these scores are then combined using a scalarization function. This function can be anything from a simple weighted sum to more complicated functions such as max-min or lexicographic priorities. A logistic regression on a human preference dataset is a starting point for weights.
+4.	**MORL Scalarization Function:** A MORL scalarization function combines the ratings from each preference model into a reward signal.
 5.	**PPO Training:** The combined score from the scalarization function acts as a reward signal, guiding the training of the target model using Proximal Policy Optimization (PPO).
 
 ## Current Setup:
@@ -43,7 +40,7 @@ This repository implements Multi-Objective Reinforcement Learning from AI Feedba
 - **Datasets:** Currently Anthropic's hh-rlhf dataset is used along with claude-3 generated principle specific datasets.
 - **Hardware:** For GPT2 models a RTX 3090 24GB was used while for Llama and Gemma models a remote cluster with 8x A100 80gb was used.
 ## Principles:
-Principles 1-5 were used in both 5- and 14-principle MORLAIF while 6-14 were only used in the 14-principle version.
+These 12 principles were used for most of the experiments. 
 1. helpfulness
 2. ethicality
 3. factuality
@@ -54,26 +51,32 @@ Principles 1-5 were used in both 5- and 14-principle MORLAIF while 6-14 were onl
 8. context
 9. bias
 10. understandability
-11. repetitiveness
-12. detail
-13. conciseness
-14. jailbreaking
-The last principle, "jailbreaking" is special in that rather than being a short single sentence like the other principles it contains a longer defintion of jailbreaking and what a successful vs failed jailbreak looks like (see `principles-14/jailbreaking.txt`). 
-
-
+11. detail
+12. conciseness
+## MORL Scalarization Functions
+Different MORL scalarization functions were evaluated to combine the preference model outputs, including:
+- Weighted Linear Combination
+- Worst-Case Optimization, aka Minimax, Max-Min or Rawlsian social welfare
+- Soft Max-Min
+- Uncertainty-Weighted Optimization
+- Lower Quantile Optimization
+- Max-Median
+- Bernoulli-Nash
 ## Results
-![](https://github.com/carolius/MORLAIF/blob/main/results.png?raw=true)
+<p align="center">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_accuracy.png?raw=true" alt="Image 1" width="45%">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/objective_accuracy.png?raw=true" alt="Image 2" width="45%">
+</p>
 
-The figure shows PM accuracy on the hh-rlhf test set for standard Constitutional AI RLAIF, MORLAIF with 5 principles and with 14 principles. The dots indicate the individual PM accuracies on the individual principle feedback for the hh-rlhf test set. We can see that 14 principles performs better than 5 which performs better than CAI, but that the advantage seems to decrease with increasing model size. So while MORLAIF seems like a large performance improvement here it could be the case that the advantage disappears completely before reaching the size of frontier models.
+<p align="center">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/human_winrate.png?raw=true" alt="Image 3" width="45%">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/LLM_winrate.png?raw=true" alt="Image 4" width="45%">
+</p>
 
-![](https://github.com/carolius/MORLAIF/blob/main/win_rate.png?raw=true)
-
-This figure shows the win rate of CAI vs 5 principle MORLAIF as judged by crowdworkers having conversations with gpt2-XL and Llama-2-7b. As we can see MORLAIF has a large win rate for gpt2-XL (although gpt2-XL is pretty bad at conversation) and a smaller but still significant win rate for Llama-2-7b.
-
-
-![](https://github.com/carolius/MORLAIF/blob/main/correlations.png?raw=true)
-
-This figure shows the correlations between the feedback for the different principles and CAI. While the correlations are quite strong, the different preference models are clearly not being trained to detect the exact same thing. It is also notable that sycophancy correlates weakly with the other principles. The sycophancy is also the only preference model which receives a negative weight in the scalarization function regression, meaning that the preferred responses are more sycophantic than the rejected ones. 
+<p align="center">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_correlations.png?raw=true" alt="Image 5" width="45%">
+  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_ablation.png?raw=true" alt="Image 6" width="45%">
+</p>
 
 ## Theoretical advantages compared to single principle RLAIF
 
