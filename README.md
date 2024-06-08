@@ -64,18 +64,18 @@ Different MORL scalarization functions were evaluated to combine the preference 
 - Bernoulli-Nash
 ## Results
 <p align="center">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_accuracy.png?raw=true" alt="Image 1" width="45%">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/objective_accuracy.png?raw=true" alt="Image 2" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/principle_accuracy.png" alt="Image 1" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/objective_accuracy.png" alt="Image 2" width="45%">
 </p>
 
 <p align="center">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/human_winrate.png?raw=true" alt="Image 3" width="45%">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/LLM_winrate.png?raw=true" alt="Image 4" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/human_winrate.png" alt="Image 3" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/LLM_winrate.png" alt="Image 4" width="45%">
 </p>
 
 <p align="center">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_correlations.png?raw=true" alt="Image 5" width="45%">
-  <img src="https://github.com/carolius/MORLAIF/plots/blob/main/principle_ablation.png?raw=true" alt="Image 6" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/principle_correlations.png" alt="Image 5" width="45%">
+  <img src="https://github.com/carolius/Multi-Objective-Reinforcement-Learning-from-AI-Feedback/blob/main/plots/principle_ablation.png" alt="Image 6" width="45%">
 </p>
 
 ## Theoretical advantages compared to single principle RLAIF
